@@ -13,7 +13,7 @@ interface BaseProps {
 
 // Composant de bouton avec variantes
 interface ButtonProps extends BaseProps {
-  variant?: 'primary' | 'secondary' | 'success' | 'warning' | 'error' | 'ghost';
+  variant?: 'primary' | 'secondary' | 'success' | 'warning' | 'error' | 'ghost' | 'outline';
   size?: 'sm' | 'md' | 'lg';
   disabled?: boolean;
   loading?: boolean;
@@ -39,7 +39,8 @@ export const Button: React.FC<ButtonProps> = ({
     success: 'bg-green-500 text-white hover:bg-green-600 focus:ring-green-500',
     warning: 'bg-orange-500 text-white hover:bg-orange-600 focus:ring-orange-500',
     error: 'bg-red-500 text-white hover:bg-red-600 focus:ring-red-500',
-    ghost: 'bg-transparent text-gray-700 hover:bg-gray-100 focus:ring-gray-500'
+    ghost: 'bg-transparent text-gray-700 hover:bg-gray-100 focus:ring-gray-500',
+    outline: 'bg-transparent border border-gray-300 text-gray-700 hover:bg-gray-100 focus:ring-gray-500'
   };
   
   const sizeClasses = {
@@ -251,37 +252,51 @@ export const SearchInput: React.FC<SearchInputProps> = ({
   );
 };
 
-// Composant de filtre
+// Composant de filtre (Dropdown Select)
 interface FilterButtonProps extends BaseProps {
-  active?: boolean;
-  count?: number;
-  onClick?: () => void;
+  options: { value: string; label: string; }[];
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  active?: boolean; // Keep active for styling if needed
+  count?: number; // Keep count for styling if needed
 }
 
 export const FilterButton: React.FC<FilterButtonProps> = ({
-  children,
-  active = false,
-  count,
-  onClick,
+  options,
+  value,
+  onChange,
+  placeholder = 'Filtrer...',
+  active = false, // Not directly used in select, but kept for consistency
+  count, // Not directly used in select, but kept for consistency
   className = ''
 }) => {
   const activeClasses = active 
     ? 'bg-[#4CAF50] text-white' 
     : 'bg-gray-100 text-gray-700 hover:bg-gray-200';
-  
+
   return (
-    <button
-      onClick={onClick}
-      className={`inline-flex items-center px-3 py-2 rounded-lg font-medium transition-all duration-200 ${activeClasses} ${className}`}
-    >
-      <Filter className="w-4 h-4 mr-2" />
-      {children}
+    <div className={`relative inline-flex items-center rounded-lg ${className}`}>
+      <Filter className="w-4 h-4 text-gray-500 absolute left-3 pointer-events-none" />
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className={`block w-full pl-10 pr-8 py-2 border border-gray-300 rounded-lg appearance-none focus:outline-none focus:ring-2 focus:ring-[#4CAF50] focus:border-transparent ${activeClasses}`}
+      >
+        {placeholder && <option value="">{placeholder}</option>}
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+      {/* Optional: Display count as a badge if needed, but not directly part of select */}
       {count !== undefined && (
-        <Badge variant="default" size="sm" className="ml-2">
+        <Badge variant="default" size="sm" className="ml-2 absolute right-2">
           {count}
         </Badge>
       )}
-    </button>
+    </div>
   );
 };
 

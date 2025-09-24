@@ -15,21 +15,33 @@ export interface User {
 
 export interface Order {
   id: number;
-  product: string;
-  description: string;
-  farmer: string;
-  buyer: string;
-  quantity: number;
-  unitPrice: number;
-  totalAmount: number;
-  status: 'pending' | 'sequestered' | 'released' | 'delivered' | 'cancelled';
-  orderDate: string;
-  deliveryDate?: string;
-  location: string;
-  category: 'vegetables' | 'fruits' | 'grains' | 'livestock' | 'other';
-  sequesterAmount?: number;
-  platformFee?: number;
-  hederaTxId?: string;
+  buyerId: number; // orders.buyer_id
+  offerId: number; // orders.offer_id
+  orderNumber: string; // orders.order_number
+  productName: string; // Derived from offerId -> products.name
+  description: string; // Derived from offerId -> products.description
+  farmerName: string; // Derived from offerId -> farmers.user_id -> users.first_name + last_name
+  buyerName: string; // Derived from buyerId -> buyers.user_id -> users.first_name + last_name
+  quantity: number; // orders.quantity
+  unitPrice: number; // orders.unit_price
+  totalPrice: number; // orders.total_price (renamed from totalAmount for consistency with SQL)
+  platformFee: number; // orders.platform_fee
+  status: 'PENDING' | 'IN_ESCROW' | 'RELEASED' | 'IN_DELIVERY' | 'DELIVERED' | 'CANCELLED' | 'DISPUTED'; // orders.status
+  escrowTransactionId?: string; // orders.escrow_transaction_id
+  escrowStartDate?: string; // orders.escrow_start_date
+  escrowEndDate?: string; // orders.escrow_end_date
+  actualDeliveryDate?: string; // orders.actual_delivery_date
+  expectedDeliveryDate?: string; // orders.expected_delivery_date
+  deliveryAddress?: string; // orders.delivery_address
+  deliveryNotes?: string; // orders.delivery_notes
+  cancellationReason?: string; // orders.cancellation_reason
+  cancelledBy?: number; // orders.cancelled_by
+  cancelledAt?: string; // orders.cancelled_at
+  createdAt: string; // orders.created_at (renamed from orderDate)
+  updatedAt?: string; // orders.updated_at
+
+  // Derived fields for display, not directly from orders table
+  productCategory: 'vegetables' | 'fruits' | 'grains' | 'livestock' | 'other'; // Derived from offerId -> products.category
 }
 
 export interface Dispute {
@@ -78,23 +90,7 @@ export interface Product {
   createdAt: string;
 }
 
-export interface Delivery {
-  id: number;
-  orderId: number;
-  farmer: string;
-  buyer: string;
-  product: string;
-  quantity: number;
-  pickupLocation: string;
-  deliveryLocation: string;
-  status: 'scheduled' | 'in-transit' | 'delivered' | 'failed';
-  scheduledDate: string;
-  deliveredDate?: string;
-  driver?: string;
-  vehicle?: string;
-  trackingNumber?: string;
-  notes?: string;
-}
+
 
 export interface PricingConfig {
   id: string;
@@ -274,7 +270,7 @@ export interface Delivery {
   scheduledDate: string;
   driver: string;
   vehicle: string;
-  status: 'scheduled' | 'in-transit' | 'delivered' | 'cancelled';
+  status: 'SCHEDULED' | 'PICKED_UP' | 'IN_TRANSIT' | 'DELIVERED' | 'FAILED';
   estimatedDuration: number;
   distance: number;
   cost: number;

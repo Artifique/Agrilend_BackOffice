@@ -16,4 +16,5 @@ export { default as Modal } from './Modal';
 export { default as ModalForm } from './ModalForm';
 export { default as ProtectedRoute } from './ProtectedRoute';
 export { default as Sidebar } from './Sidebar';
-export { default as UserForm } from './UserForm';
+// export { default as UserForm, UserFormData, FarmerProfile, BuyerProfile, User, initialUserForm } from './UserForm';
+// import { UserForm, UserFormData } from 'components';

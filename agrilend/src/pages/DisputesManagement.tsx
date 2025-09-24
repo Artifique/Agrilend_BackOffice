@@ -1,211 +1,52 @@
-import React, { useState, useMemo, useCallback } from "react";
-import {
-  AlertTriangle,
-  CheckCircle,
-  Clock,
-  User,
-  Calendar,
-  AlertCircle,
-  Package,
-  MessageSquare,
-  UserPlus,
-} from "lucide-react";
-import { createColumnHelper, CellContext } from "@tanstack/react-table";
+import React, { useState, useMemo, useCallback, useEffect } from "react";
+import { AlertTriangle, CheckCircle, Clock } from "lucide-react";
+import { Dispute } from "../types";
 import { ManagementPage } from "../components/ManagementPage";
 import Modal from "../components/Modal";
 import ModalForm from "../components/ModalForm";
 import FormField from "../components/FormField";
-import { Dispute } from "../types";
+import { createColumnHelper } from "@tanstack/react-table";
 
-// Composant spécialisé pour les actions de litige
-interface DisputeActionsProps {
-  dispute: Dispute;
-  onAssign: (dispute: Dispute) => void;
-  onResolve: (dispute: Dispute) => void;
-  onEscalate: (dispute: Dispute) => void;
-}
-
-const DisputeActions: React.FC<DisputeActionsProps> = ({
-  dispute,
-  onAssign,
-  onResolve,
-  onEscalate,
-}) => {
-  const getStatusColor = (status: Dispute["status"]) => {
-    switch (status) {
-      case "open":
-        return "bg-blue-100 text-blue-800";
-      case "in-progress":
-        return "bg-yellow-100 text-yellow-800";
-      case "resolved":
-        return "bg-green-100 text-green-800";
-      case "closed":
-        return "bg-red-100 text-red-800";
-      default:
-        return "bg-gray-100 text-gray-800";
-    }
-  };
-
-  const getPriorityColor = (priority: Dispute["priority"]) => {
-    switch (priority) {
-      case "low":
-        return "bg-green-100 text-green-800";
-      case "medium":
-        return "bg-yellow-100 text-yellow-800";
-      case "high":
-        return "bg-orange-100 text-orange-800";
-      case "urgent":
-        return "bg-red-100 text-red-800";
-      default:
-        return "bg-gray-100 text-gray-800";
-    }
-  };
-
-  return (
-    <div className="space-y-4">
-      {/* Informations du litige */}
-      <div className="bg-gray-50 p-4 rounded-lg">
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <h3 className="font-semibold text-gray-700 mb-2">
-              Informations Générales
-            </h3>
-            <div className="space-y-2">
-              <div className="flex items-center">
-                <span className="font-medium w-20">Description:</span>
-                <span>{dispute.description}</span>
-              </div>
-              <div className="flex items-center">
-                <span className="font-medium w-20">Statut:</span>
-                <span
-                  className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
-                    dispute.status
-                  )}`}
-                >
-                  {dispute.status.charAt(0).toUpperCase() +
-                    dispute.status.slice(1)}
-                </span>
-              </div>
-              <div className="flex items-center">
-                <span className="font-medium w-20">Priorité:</span>
-                <span
-                  className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(
-                    dispute.priority
-                  )}`}
-                >
-                  {dispute.priority.charAt(0).toUpperCase() +
-                    dispute.priority.slice(1)}
-                </span>
-              </div>
-            </div>
-          </div>
-          <div>
-            <h3 className="font-semibold text-gray-700 mb-2">
-              Parties Concernées
-            </h3>
-            <div className="space-y-2">
-              <div className="flex items-center">
-                <User className="h-4 w-4 text-gray-500 mr-2" />
-                <span className="font-medium">Agriculteur:</span>
-                <span className="ml-2">{dispute.farmer}</span>
-              </div>
-              <div className="flex items-center">
-                <User className="h-4 w-4 text-gray-500 mr-2" />
-                <span className="font-medium">Acheteur:</span>
-                <span className="ml-2">{dispute.buyer}</span>
-              </div>
-              <div className="flex items-center">
-                <Package className="h-4 w-4 text-gray-500 mr-2" />
-                <span className="font-medium">Produit:</span>
-                <span className="ml-2">{dispute.productType}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Actions disponibles */}
-      <div className="flex flex-wrap gap-2">
-        {dispute.status === "open" && (
-          <>
-            <button
-              onClick={() => onAssign(dispute)}
-              className="flex items-center px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              <UserPlus className="h-4 w-4 mr-2" />
-              Assigner
-            </button>
-            <button
-              onClick={() => onResolve(dispute)}
-              className="flex items-center px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-            >
-              <CheckCircle className="h-4 w-4 mr-2" />
-              Résoudre
-            </button>
-          </>
-        )}
-
-        {dispute.status === "in-progress" && (
-          <>
-            <button
-              onClick={() => onResolve(dispute)}
-              className="flex items-center px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-            >
-              <CheckCircle className="h-4 w-4 mr-2" />
-              Résoudre
-            </button>
-            <button
-              onClick={() => onEscalate(dispute)}
-              className="flex items-center px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-            >
-              <AlertCircle className="h-4 w-4 mr-2" />
-              Escalader
-            </button>
-          </>
-        )}
-
-        {dispute.status === "closed" && (
-          <button
-            onClick={() => onResolve(dispute)}
-            className="flex items-center px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-          >
-            <CheckCircle className="h-4 w-4 mr-2" />
-            Résoudre
-          </button>
-        )}
-
-        <button className="flex items-center px-3 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors">
-          <MessageSquare className="h-4 w-4 mr-2" />
-          Commenter
-        </button>
-      </div>
-    </div>
-  );
-};
-
-// Configuration pour la page de gestion des litiges optimisée
-const DisputesManagementOptimized: React.FC = () => {
-  // États pour les modals spécialisés
-  const [showAssignModal, setShowAssignModal] = useState(false);
-  const [showResolveModal, setShowResolveModal] = useState(false);
+const DisputesManagement: React.FC = () => {
+  // États
+  const [disputes, setDisputes] = useState<Dispute[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [selectedDispute, setSelectedDispute] = useState<Dispute | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [showAssignModal, setShowAssignModal] = useState<boolean>(false);
+  const [showResolveModal, setShowResolveModal] = useState<boolean>(false);
+  const [assignFormData, setAssignFormData] = useState<{
+    assignedTo: string;
+    comment: string;
+  }>({ assignedTo: "", comment: "" });
+  const [resolveFormData, setResolveFormData] = useState<{
+    resolution: string;
+    resolutionComment: string;
+    compensation: string;
+  }>({ resolution: "", resolutionComment: "", compensation: "" });
 
-  // États pour les formulaires
-  const [assignFormData, setAssignFormData] = useState({
-    assignedTo: "",
-    comment: "",
-  });
+  // Fonctions pour fermer les modals
+  const handleCloseAssignModal = useCallback(() => {
+    setShowAssignModal(false);
+    setSelectedDispute(null);
+    setAssignFormData({ assignedTo: "", comment: "" });
+  }, []);
 
-  const [resolveFormData, setResolveFormData] = useState({
-    resolution: "",
-    resolutionComment: "",
-    compensation: "",
-  });
+  const handleCloseResolveModal = useCallback(() => {
+    setShowResolveModal(false);
+    setSelectedDispute(null);
+    setResolveFormData({
+      resolution: "",
+      resolutionComment: "",
+      compensation: "",
+    });
+  }, []);
 
-  // Données d'exemple
-  const disputesData: Dispute[] = useMemo(
-    () => [
+  // Fetch disputes
+  const fetchDisputes = useCallback(async () => {
+    setIsLoading(true);
+    // Simule un appel API
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    const fetchedDisputes: Dispute[] = [
       {
         id: 1,
         farmer: "Jean Kouassi",
@@ -228,8 +69,8 @@ const DisputesManagementOptimized: React.FC = () => {
         orderId: 102,
         productType: "Légumes",
         category: "quality",
-        status: "open" as const,
-        priority: "medium" as const,
+        status: "open",
+        priority: "medium",
         description:
           "Les avocats reçus sont trop mûrs et ne peuvent pas être vendus.",
         createdAt: "2024-09-14",
@@ -268,11 +109,56 @@ const DisputesManagementOptimized: React.FC = () => {
         assignedTo: "Admin Système",
         hederaTxId: "0.0.1122334@1679111111.223344556",
       },
+    ];
+    setDisputes(fetchedDisputes);
+    setIsLoading(false);
+  }, []);
+
+  useEffect(() => {
+    fetchDisputes();
+  }, [fetchDisputes]);
+
+  // ... (le reste du code jusqu'à la définition des colonnes)
+
+  const columnHelper = createColumnHelper<Dispute>();
+
+  // Colonnes pour la table
+  const columns = useMemo(
+    () => [
+      columnHelper.accessor("id", { header: "ID" }),
+      columnHelper.accessor("description", { header: "Description" }),
+      columnHelper.accessor("farmer", { header: "Agriculteur" }),
+      columnHelper.accessor("buyer", { header: "Acheteur" }),
+      columnHelper.accessor("orderId", { header: "ID Commande" }),
+      columnHelper.accessor("status", {
+        header: "Statut",
+        cell: ({ row }: { row: { original: Dispute } }) => {
+          const status = row.original.status;
+          const colors = {
+            open: "bg-blue-100 text-blue-800",
+            "in-progress": "bg-yellow-100 text-yellow-800",
+            resolved: "bg-green-100 text-green-800",
+            closed: "bg-gray-100 text-gray-800",
+          };
+          return (
+            <span
+              className={`px-2 py-1 rounded-full text-xs font-medium ${
+                colors[status as keyof typeof colors]
+              }`}
+            >
+              {status.charAt(0).toUpperCase() + status.slice(1)}
+            </span>
+          );
+        },
+      }),
+      columnHelper.accessor("priority", { header: "Priorité" }),
+      columnHelper.accessor("createdAt", { header: "Date Création" }),
+      columnHelper.accessor("assignedTo", { header: "Assigné à" }),
     ],
-    []
+    [columnHelper]
   );
 
-  // Handlers pour les actions spécialisées
+  // Handlers pour les actions
   const handleAssign = useCallback((dispute: Dispute) => {
     setSelectedDispute(dispute);
     setShowAssignModal(true);
@@ -283,11 +169,12 @@ const DisputesManagementOptimized: React.FC = () => {
     setShowResolveModal(true);
   }, []);
 
-  const handleEscalate = useCallback(() => {
-    // Logique d'escalade
+  const handleEscalate = useCallback((dispute: Dispute) => {
+    // Mettre ici la logique d'escalade du litige
+    alert(`Escalade du litige ID: ${dispute.id}`);
   }, []);
 
-  // Handlers pour les formulaires
+  // Handlers pour les changements de formulaire
   const handleAssignFormChange = useCallback(
     (
       e: React.ChangeEvent<
@@ -312,259 +199,26 @@ const DisputesManagementOptimized: React.FC = () => {
     []
   );
 
-  const resetAssignForm = useCallback(() => {
-    setAssignFormData({ assignedTo: "", comment: "" });
-  }, []);
+  // Soumission des formulaires
+  const handleAssignSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedDispute) return;
+    console.log("Assignation du litige:", selectedDispute.id, assignFormData);
+    // Logique de soumission API...
+    handleCloseAssignModal();
+    fetchDisputes();
+  };
 
-  const resetResolveForm = useCallback(() => {
-    setResolveFormData({
-      resolution: "",
-      resolutionComment: "",
-      compensation: "",
-    });
-  }, []);
+  const handleResolveSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedDispute) return;
+    console.log("Résolution du litige:", selectedDispute.id, resolveFormData);
+    // Logique de soumission API...
+    handleCloseResolveModal();
+    fetchDisputes();
+  };
 
-  // Handlers pour fermer les modals
-  const handleCloseAssignModal = useCallback(() => {
-    setShowAssignModal(false);
-    setSelectedDispute(null);
-    resetAssignForm();
-  }, [resetAssignForm]);
-
-  const handleCloseResolveModal = useCallback(() => {
-    setShowResolveModal(false);
-    setSelectedDispute(null);
-    resetResolveForm();
-  }, [resetResolveForm]);
-
-  // Configuration des colonnes
-  const columns = useCallback(
-    (columnHelper: ReturnType<typeof createColumnHelper<Dispute>>) => {
-      return [
-        columnHelper.accessor("description", {
-          header: "Description du Litige",
-          cell: (info: CellContext<Dispute, unknown>) => (
-            <div className="flex items-center">
-              <AlertTriangle className="h-5 w-5 text-gray-500 mr-2" />
-              <div>
-                <div className="font-medium">{String(info.getValue())}</div>
-                <div className="text-sm text-gray-500">
-                  #{info.row.original.orderId}
-                </div>
-              </div>
-            </div>
-          ),
-          enableSorting: true,
-        }),
-        columnHelper.accessor("farmer", {
-          header: "Agriculteur",
-          cell: (info: CellContext<Dispute, unknown>) => (
-            <div className="flex items-center">
-              <User className="h-4 w-4 text-gray-500 mr-2" />
-              {String(info.getValue())}
-            </div>
-          ),
-          enableSorting: true,
-        }),
-        columnHelper.accessor("buyer", {
-          header: "Acheteur",
-          cell: (info: CellContext<Dispute, unknown>) => (
-            <div className="flex items-center">
-              <User className="h-4 w-4 text-gray-500 mr-2" />
-              {String(info.getValue())}
-            </div>
-          ),
-          enableSorting: true,
-        }),
-        columnHelper.accessor("productType", {
-          header: "Type Produit",
-          cell: (info: CellContext<Dispute, unknown>) => (
-            <div className="flex items-center">
-              <Package className="h-4 w-4 text-gray-500 mr-2" />
-              {String(info.getValue())}
-            </div>
-          ),
-          enableSorting: true,
-        }),
-        columnHelper.accessor("category", {
-          header: "Catégorie",
-          cell: (info: CellContext<Dispute, unknown>) =>
-            String(info.getValue()).charAt(0).toUpperCase() +
-            String(info.getValue()).slice(1).replace("-", " "),
-          enableSorting: true,
-          enableColumnFilter: true,
-        }),
-        columnHelper.accessor("status", {
-          header: "Statut",
-          cell: (info: CellContext<Dispute, unknown>) => {
-            const status = String(info.getValue());
-            const colors = {
-              open: "bg-blue-100 text-blue-800",
-              "in-progress": "bg-yellow-100 text-yellow-800",
-              resolved: "bg-green-100 text-green-800",
-              closed: "bg-red-100 text-red-800",
-            };
-            return (
-              <span
-                className={`px-2 py-1 rounded-full text-xs font-medium ${
-                  colors[status as keyof typeof colors]
-                }`}
-              >
-                {status.charAt(0).toUpperCase() + status.slice(1)}
-              </span>
-            );
-          },
-          enableSorting: true,
-          enableColumnFilter: true,
-        }),
-        columnHelper.accessor("priority", {
-          header: "Priorité",
-          cell: (info: CellContext<Dispute, unknown>) => {
-            const priority = String(info.getValue());
-            const colors = {
-              low: "bg-green-100 text-green-800",
-              medium: "bg-yellow-100 text-yellow-800",
-              high: "bg-orange-100 text-orange-800",
-              urgent: "bg-red-100 text-red-800",
-            };
-            return (
-              <span
-                className={`px-2 py-1 rounded-full text-xs font-medium ${
-                  colors[priority as keyof typeof colors]
-                }`}
-              >
-                {priority.charAt(0).toUpperCase() + priority.slice(1)}
-              </span>
-            );
-          },
-          enableSorting: true,
-          enableColumnFilter: true,
-        }),
-        columnHelper.accessor("createdAt", {
-          header: "Date Création",
-          cell: (info: CellContext<Dispute, unknown>) => (
-            <div className="flex items-center">
-              <Calendar className="h-4 w-4 text-gray-500 mr-2" />
-              {String(info.getValue())}
-            </div>
-          ),
-          enableSorting: true,
-        }),
-        columnHelper.accessor("resolvedAt", {
-          header: "Date Résolution",
-          cell: (info: CellContext<Dispute, unknown>) => (
-            <div className="flex items-center">
-              <Clock className="h-4 w-4 text-gray-500 mr-2" />
-              {info.getValue() ? String(info.getValue()) : "Non résolu"}
-            </div>
-          ),
-          enableSorting: true,
-        }),
-        columnHelper.display({
-          id: "actions",
-          header: "Actions",
-          cell: ({ row }) => (
-            <div className="flex items-center space-x-2">
-              <button
-                onClick={() => handleAssign(row.original)}
-                className="text-blue-600 hover:text-blue-900 transition-colors"
-                title="Assigner le litige"
-              >
-                <UserPlus className="h-5 w-5" />
-              </button>
-              <button
-                onClick={() => handleResolve(row.original)}
-                className="text-green-600 hover:text-green-900 transition-colors"
-                title="Résoudre le litige"
-              >
-                <CheckCircle className="h-5 w-5" />
-              </button>
-            </div>
-          ),
-        }),
-      ];
-    },
-    [handleAssign, handleResolve]
-  );
-
-  // Configuration des champs du formulaire
-  const formFields = useMemo(
-    () => [
-      {
-        name: "description",
-        label: "Description",
-        type: "textarea" as const,
-        placeholder: "Détails du litige...",
-        required: true,
-        rows: 3,
-      },
-      {
-        name: "farmer",
-        label: "Agriculteur",
-        type: "text" as const,
-        placeholder: "Nom de l'agriculteur",
-        required: true,
-      },
-      {
-        name: "buyer",
-        label: "Acheteur",
-        type: "text" as const,
-        placeholder: "Nom de l'acheteur",
-        required: true,
-      },
-      {
-        name: "orderId",
-        label: "ID Commande",
-        type: "number" as const,
-        placeholder: "123",
-        required: true,
-        min: 1,
-      },
-      {
-        name: "productType",
-        label: "Type de Produit",
-        type: "text" as const,
-        placeholder: "Fruits, Légumes, etc.",
-        required: true,
-      },
-      {
-        name: "category",
-        label: "Catégorie",
-        type: "select" as const,
-        required: true,
-        options: [
-          { value: "non-delivery", label: "Non-livraison" },
-          { value: "cancellation", label: "Annulation" },
-          { value: "quality", label: "Qualité" },
-          { value: "payment", label: "Paiement" },
-          { value: "logistics", label: "Logistique" },
-          { value: "other", label: "Autre" },
-        ],
-      },
-      {
-        name: "priority",
-        label: "Priorité",
-        type: "select" as const,
-        required: true,
-        options: [
-          { value: "low", label: "Faible" },
-          { value: "medium", label: "Moyenne" },
-          { value: "high", label: "Élevée" },
-          { value: "urgent", label: "Urgente" },
-        ],
-      },
-      {
-        name: "assignedTo",
-        label: "Assigné à",
-        type: "text" as const,
-        placeholder: "Nom de l'administrateur",
-        required: false,
-      },
-    ],
-    []
-  );
-
-  // Configuration des champs de visualisation
+  // Champs pour la vue détaillée
   const viewFields = useMemo(
     () => [
       { key: "description", label: "Description" },
@@ -583,85 +237,19 @@ const DisputesManagementOptimized: React.FC = () => {
     []
   );
 
-  // Configuration par défaut du formulaire
-  const defaultFormData = useMemo(
-    () => ({
-      description: "",
-      farmer: "",
-      buyer: "",
-      orderId: 0,
-      productType: "",
-      priority: "medium" as const,
-      category: "other" as const,
-      assignedTo: "",
-      status: "open" as const,
-      createdAt: new Date().toISOString().split("T")[0],
-    }),
-    []
-  );
-
-  // Règles de validation
-  const validationRules = useMemo(
-    () => ({
-      description: (value: unknown) => {
-        const str = String(value);
-        if (!str.trim()) return "La description est requise";
-        if (str.length < 10)
-          return "La description doit contenir au moins 10 caractères";
-        return null;
-      },
-      farmer: (value: unknown) => {
-        const str = String(value);
-        if (!str.trim()) return "L'agriculteur est requis";
-        if (str.length < 2)
-          return "L'agriculteur doit contenir au moins 2 caractères";
-        return null;
-      },
-      buyer: (value: unknown) => {
-        const str = String(value);
-        if (!str.trim()) return "L'acheteur est requis";
-        if (str.length < 2)
-          return "L'acheteur doit contenir au moins 2 caractères";
-        return null;
-      },
-      orderId: (value: unknown) => {
-        const num = Number(value);
-        if (!num || num < 1)
-          return "L'ID de commande doit être un nombre positif";
-        return null;
-      },
-      productType: (value: unknown) => {
-        const str = String(value);
-        if (!str.trim()) return "Le type de produit est requis";
-        if (str.length < 2)
-          return "Le type de produit doit contenir au moins 2 caractères";
-        return null;
-      },
-      category: (value: unknown) => {
-        if (!value) return "La catégorie est requise";
-        return null;
-      },
-      priority: (value: unknown) => {
-        if (!value) return "La priorité est requise";
-        return null;
-      },
-    }),
-    []
-  );
-
   // Statistiques
   const stats = useMemo(
     () => [
       {
         label: "Total Litiges",
-        value: disputesData.length,
+        value: disputes.length,
         icon: AlertTriangle,
         color: "text-red-600",
         bgColor: "bg-red-100",
       },
       {
         label: "En Cours",
-        value: disputesData.filter(
+        value: disputes.filter(
           (d) => d.status === "open" || d.status === "in-progress"
         ).length,
         icon: Clock,
@@ -670,177 +258,136 @@ const DisputesManagementOptimized: React.FC = () => {
       },
       {
         label: "Résolus",
-        value: disputesData.filter((d) => d.status === "resolved").length,
+        value: disputes.filter((d) => d.status === "resolved").length,
         icon: CheckCircle,
         color: "text-green-600",
         bgColor: "bg-green-100",
       },
-      {
-        label: "Fermés",
-        value: disputesData.filter((d) => d.status === "closed").length,
-        icon: AlertCircle,
-        color: "text-red-600",
-        bgColor: "bg-red-100",
-      },
     ],
-    [disputesData]
+    [disputes]
   );
 
-  const handleAssignSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-
-    // Simulation d'API optimisée
-    await new Promise((resolve) => setTimeout(resolve, 200));
-
-    setIsLoading(false);
-    setShowAssignModal(false);
-    setSelectedDispute(null);
-    resetAssignForm();
-  };
-
-  const handleResolveSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-
-    // Simulation d'API optimisée
-    await new Promise((resolve) => setTimeout(resolve, 200));
-
-    setIsLoading(false);
-    setShowResolveModal(false);
-    setSelectedDispute(null);
-    resetResolveForm();
-  };
-
+  // Configuration de la page de management
   const config = useMemo(
     () => ({
       title: "Gestion des Litiges",
       description:
-        "Gérez les litiges entre agriculteurs et acheteurs, assurez la résolution équitable",
+        "Suivi et résolution des litiges entre acheteurs et agriculteurs.",
       icon: AlertTriangle,
       stats,
-      formFields,
+      columns: () => columns,
       viewFields,
-      columns,
-      defaultFormData,
-      validationRules,
+      // Les champs de formulaire, les valeurs par défaut et la validation
+      // sont gérés par les modales spécifiques ci-dessous
+      formFields: [],
+      defaultFormData: {},
+      validationRules: {},
     }),
-    [stats, formFields, viewFields, columns, defaultFormData, validationRules]
+    [stats, columns, viewFields]
   );
 
   return (
     <>
-      <ManagementPage<Dispute> config={config} data={disputesData} />
+      <ManagementPage<Dispute>
+        config={config}
+        data={disputes}
+        onAssign={handleAssign}
+        onResolve={handleResolve}
+        onEscalate={handleEscalate}
+      />
 
       {/* Modal d'assignation */}
-      <Modal
-        isOpen={showAssignModal}
-        onClose={handleCloseAssignModal}
-        title="Assigner un Litige"
-        size="lg"
-      >
-        {selectedDispute && (
-          <DisputeActions
-            dispute={selectedDispute}
-            onAssign={handleAssign}
-            onResolve={handleResolve}
-            onEscalate={handleEscalate}
-          />
-        )}
-
-        <ModalForm
-          onSubmit={handleAssignSubmit}
-          onCancel={handleCloseAssignModal}
-          submitText="Assigner"
-          isLoading={isLoading}
+      {selectedDispute && (
+        <Modal
+          isOpen={showAssignModal}
+          onClose={handleCloseAssignModal}
+          title={`Assigner le litige #${selectedDispute.id}`}
+          size="md"
         >
-          <FormField
-            label="Assigné à"
-            name="assignedTo"
-            type="text"
-            value={assignFormData.assignedTo}
-            onChange={handleAssignFormChange}
-            placeholder="Nom de l'administrateur"
-            required
-          />
-          <FormField
-            label="Commentaire"
-            name="comment"
-            type="textarea"
-            value={assignFormData.comment}
-            onChange={handleAssignFormChange}
-            placeholder="Commentaire sur l'assignation..."
-            rows={3}
-          />
-        </ModalForm>
-      </Modal>
+          <ModalForm
+            onSubmit={handleAssignSubmit}
+            onCancel={handleCloseAssignModal}
+            submitText="Assigner"
+            isLoading={isLoading}
+          >
+            <FormField
+              label="Assigner à"
+              name="assignedTo"
+              type="text"
+              value={assignFormData.assignedTo}
+              onChange={handleAssignFormChange}
+              placeholder="Nom de l'administrateur"
+              required
+            />
+            <FormField
+              label="Commentaire"
+              name="comment"
+              type="textarea"
+              value={assignFormData.comment}
+              onChange={handleAssignFormChange}
+              placeholder="Ajouter un commentaire..."
+              rows={3}
+            />
+          </ModalForm>
+        </Modal>
+      )}
 
       {/* Modal de résolution */}
-      <Modal
-        isOpen={showResolveModal}
-        onClose={handleCloseResolveModal}
-        title="Résoudre un Litige"
-        size="lg"
-      >
-        {selectedDispute && (
-          <DisputeActions
-            dispute={selectedDispute}
-            onAssign={handleAssign}
-            onResolve={handleResolve}
-            onEscalate={handleEscalate}
-          />
-        )}
-
-        <ModalForm
-          onSubmit={handleResolveSubmit}
-          onCancel={handleCloseResolveModal}
-          submitText="Résoudre"
-          isLoading={isLoading}
+      {selectedDispute && (
+        <Modal
+          isOpen={showResolveModal}
+          onClose={handleCloseResolveModal}
+          title={`Résoudre le litige #${selectedDispute.id}`}
+          size="md"
         >
-          <FormField
-            label="Résolution"
-            name="resolution"
-            type="select"
-            value={resolveFormData.resolution}
-            onChange={handleResolveFormChange}
-            required
-            options={[
-              {
-                value: "resolved-farmer",
-                label: "Résolu en faveur de l'agriculteur",
-              },
-              {
-                value: "resolved-buyer",
-                label: "Résolu en faveur de l'acheteur",
-              },
-              { value: "resolved-partial", label: "Résolution partielle" },
-              { value: "resolved-no-fault", label: "Aucune faute" },
-            ]}
-          />
-          <FormField
-            label="Commentaire de résolution"
-            name="resolutionComment"
-            type="textarea"
-            value={resolveFormData.resolutionComment}
-            onChange={handleResolveFormChange}
-            placeholder="Détails de la résolution..."
-            required
-            rows={4}
-          />
-          <FormField
-            label="Compensation (€)"
-            name="compensation"
-            type="number"
-            value={resolveFormData.compensation}
-            onChange={handleResolveFormChange}
-            placeholder="0.00"
-            min={0}
-            step={0.01}
-          />
-        </ModalForm>
-      </Modal>
+          <ModalForm
+            onSubmit={handleResolveSubmit}
+            onCancel={handleCloseResolveModal}
+            submitText="Résoudre"
+            isLoading={isLoading}
+          >
+            <FormField
+              label="Résolution"
+              name="resolution"
+              type="select"
+              value={resolveFormData.resolution}
+              onChange={handleResolveFormChange}
+              required
+              options={[
+                {
+                  value: "resolved-farmer",
+                  label: "En faveur de l'agriculteur",
+                },
+                { value: "resolved-buyer", label: "En faveur de l'acheteur" },
+                { value: "resolved-partial", label: "Résolution partielle" },
+                { value: "no-fault", label: "Aucune faute" },
+              ]}
+            />
+            <FormField
+              label="Commentaire de résolution"
+              name="resolutionComment"
+              type="textarea"
+              value={resolveFormData.resolutionComment}
+              onChange={handleResolveFormChange}
+              placeholder="Détails de la résolution..."
+              required
+              rows={4}
+            />
+            <FormField
+              label="Compensation (HBAR)"
+              name="compensation"
+              type="number"
+              value={resolveFormData.compensation}
+              onChange={handleResolveFormChange}
+              placeholder="0.00"
+              min={0}
+              step={0.01}
+            />
+          </ModalForm>
+        </Modal>
+      )}
     </>
   );
 };
 
-export default DisputesManagementOptimized;
+export default DisputesManagement;

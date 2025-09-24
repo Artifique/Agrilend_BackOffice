@@ -1,189 +1,314 @@
-import React, { useState } from 'react';
+import React from "react";
+import FormField from "./FormField";
 
-interface User {
-  name: string;
+// Farmer profile
+export interface FarmerProfile {
+  farmName: string;
+  farmLocation: string;
+  farmSizeHectares?: number;
+  certifications?: string; // JSON string
+  bankAccountDetails?: string; // Encrypted in production
+  farmingSince?: number; // YEAR
+  specializations?: string; // JSON string
+}
+
+// Buyer profile
+export interface BuyerProfile {
+  companyName?: string;
+  businessType?: string;
+  businessRegistrationNumber?: string;
+  vatNumber?: string;
+  billingAddress?: string;
+  shippingAddress?: string;
+  creditLimit?: number;
+  paymentTermsDays?: number;
+}
+
+// User form data
+export type UserFormData = {
+  id?: number;
+  firstName: string;
+  lastName: string;
   email: string;
-  phone: string;
-  type: 'farmer' | 'investor' | 'agent';
-  location?: string;
+  password?: string;
+  phone?: string;
+  address?: string;
+  hederaAccountId?: string;
+  role: "FARMER" | "BUYER" | "ADMIN";
+  status: "ACTIVE" | "PENDING" | "INACTIVE";
+  farmerProfile?: FarmerProfile;
+  buyerProfile?: BuyerProfile;
+};
+
+// User type
+export interface User {
+  id: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone?: string;
+  address?: string;
+  hederaAccountId?: string;
+  role: "FARMER" | "BUYER" | "ADMIN";
+  createdAt: string;
+  status: "ACTIVE" | "PENDING" | "INACTIVE";
+  isActive: boolean;
+  emailVerified: boolean;
+  lastLogin?: string;
+  farmerProfile?: FarmerProfile;
+  buyerProfile?: BuyerProfile;
+  ordersCount: number;
+  totalAmount: number;
 }
 
-interface UserFormProps {
-  initialData?: Partial<User> | null;
-  onSubmit: (userData: Partial<User>) => void;
-  onCancel: () => void;
-}
+// Valeur initiale pour formulaire
+export const initialUserForm: UserFormData = {
+  firstName: "",
+  lastName: "",
+  email: "",
+  password: "",
+  phone: "",
+  address: "",
+  hederaAccountId: "",
+  role: "BUYER",
+  status: "PENDING",
+  farmerProfile: { farmName: "", farmLocation: "" },
+  buyerProfile: { companyName: "" },
+};
 
-export default function UserForm({ initialData, onSubmit, onCancel }: UserFormProps) {
-  const [formData, setFormData] = useState<Partial<User>>({
-    name: initialData?.name || '',
-    email: initialData?.email || '',
-    phone: initialData?.phone || '',
-    type: initialData?.type || 'farmer',
-    location: initialData?.location || '',
-  });
+// Composant UserForm
+const UserForm: React.FC<{
+  user: UserFormData;
+  onChange: (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >
+  ) => void;
+  onProfileChange: (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >,
+    profileType: "farmerProfile" | "buyerProfile"
+  ) => void;
+  isNewUser?: boolean;
+}> = ({ user, onChange, onProfileChange, isNewUser }) => (
+  <>
+    <FormField
+      label="Prénom"
+      name="firstName"
+      type="text"
+      value={user.firstName}
+      onChange={onChange}
+      placeholder="Jean"
+      required
+    />
+    <FormField
+      label="Nom"
+      name="lastName"
+      type="text"
+      value={user.lastName}
+      onChange={onChange}
+      placeholder="Kouassi"
+      required
+    />
+    <FormField
+      label="Email"
+      name="email"
+      type="email"
+      value={user.email}
+      onChange={onChange}
+      placeholder="jean.kouassi@email.com"
+      required
+    />
+    {isNewUser && (
+      <FormField
+        label="Mot de passe"
+        name="password"
+        type="password"
+        value={user.password || ""}
+        onChange={onChange}
+        placeholder="********"
+        required
+      />
+    )}
+    <FormField
+      label="Téléphone"
+      name="phone"
+      type="tel"
+      value={user.phone || ""}
+      onChange={onChange}
+      placeholder="+225 07 12 34 56"
+    />
+    <FormField
+      label="ID Compte Hedera"
+      name="hederaAccountId"
+      type="text"
+      value={user.hederaAccountId || ""}
+      onChange={onChange}
+      placeholder="0.0.123456"
+    />
+    <FormField
+      label="Rôle"
+      name="role"
+      type="select"
+      value={user.role}
+      onChange={onChange}
+      required
+      options={[
+        { value: "FARMER", label: "Agriculteur" },
+        { value: "BUYER", label: "Acheteur" },
+        { value: "ADMIN", label: "Administrateur" },
+      ]}
+    />
+    <FormField
+      label="Statut"
+      name="status"
+      type="select"
+      value={user.status}
+      onChange={onChange}
+      required
+      options={[
+        { value: "ACTIVE", label: "Actif" },
+        { value: "PENDING", label: "En attente" },
+        { value: "INACTIVE", label: "Inactif" },
+      ]}
+    />
 
-  const [errors, setErrors] = useState<Record<string, string>>({});
+    {user.role === "FARMER" && user.farmerProfile && (
+      <>
+        <h3 className="text-lg font-semibold mt-6 mb-3">Profil Agriculteur</h3>
+        <FormField
+          label="Nom de la ferme"
+          name="farmName"
+          type="text"
+          value={user.farmerProfile.farmName}
+          onChange={(e) => onProfileChange(e, "farmerProfile")}
+          placeholder="Ferme du Bonheur"
+          required
+        />
+        <FormField
+          label="Localisation de la ferme"
+          name="farmLocation"
+          type="text"
+          value={user.farmerProfile.farmLocation}
+          onChange={(e) => onProfileChange(e, "farmerProfile")}
+          placeholder="Yamoussoukro, Côte d'Ivoire"
+          required
+        />
+        <FormField
+          label="Taille de la ferme (hectares)"
+          name="farmSizeHectares"
+          type="number"
+          value={user.farmerProfile.farmSizeHectares || ""}
+          onChange={(e) => onProfileChange(e, "farmerProfile")}
+          placeholder="100"
+        />
+        <FormField
+          label="Certifications (JSON)"
+          name="certifications"
+          type="textarea"
+          value={user.farmerProfile.certifications || ""}
+          onChange={(e) => onProfileChange(e, "farmerProfile")}
+          placeholder='["Bio", "GlobalGAP"]'
+        />
+        <FormField
+          label="Détails du compte bancaire"
+          name="bankAccountDetails"
+          type="textarea"
+          value={user.farmerProfile.bankAccountDetails || ""}
+          onChange={(e) => onProfileChange(e, "farmerProfile")}
+          placeholder="RIB, IBAN, SWIFT"
+        />
+        <FormField
+          label="Année de début d'activité"
+          name="farmingSince"
+          type="number"
+          value={user.farmerProfile.farmingSince || ""}
+          onChange={(e) => onProfileChange(e, "farmerProfile")}
+          placeholder="2000"
+        />
+        <FormField
+          label="Spécialisations (JSON)"
+          name="specializations"
+          type="textarea"
+          value={user.farmerProfile.specializations || ""}
+          onChange={(e) => onProfileChange(e, "farmerProfile")}
+          placeholder='["Céréales", "Légumes"]'
+        />
+      </>
+    )}
 
-  const validateForm = () => {
-    const newErrors: Record<string, string> = {};
+    {user.role === "BUYER" && user.buyerProfile && (
+      <>
+        <h3 className="text-lg font-semibold mt-6 mb-3">Profil Acheteur</h3>
+        <FormField
+          label="Nom de l'entreprise"
+          name="companyName"
+          type="text"
+          value={user.buyerProfile.companyName || ""}
+          onChange={(e) => onProfileChange(e, "buyerProfile")}
+          placeholder="Agro Distribution SARL"
+          required
+        />
+        <FormField
+          label="Type d'entreprise"
+          name="businessType"
+          type="text"
+          value={user.buyerProfile.businessType || ""}
+          onChange={(e) => onProfileChange(e, "buyerProfile")}
+          placeholder="SARL, SA, EURL"
+        />
+        <FormField
+          label="Numéro d'enregistrement commercial"
+          name="businessRegistrationNumber"
+          type="text"
+          value={user.buyerProfile.businessRegistrationNumber || ""}
+          onChange={(e) => onProfileChange(e, "buyerProfile")}
+          placeholder="RC 1234567"
+        />
+        <FormField
+          label="Numéro de TVA"
+          name="vatNumber"
+          type="text"
+          value={user.buyerProfile.vatNumber || ""}
+          onChange={(e) => onProfileChange(e, "buyerProfile")}
+          placeholder="FRXX123456789"
+        />
+        <FormField
+          label="Adresse de facturation"
+          name="billingAddress"
+          type="textarea"
+          value={user.buyerProfile.billingAddress || ""}
+          onChange={(e) => onProfileChange(e, "buyerProfile")}
+          placeholder="123 Rue de la Facturation, Ville"
+        />
+        <FormField
+          label="Adresse de livraison"
+          name="shippingAddress"
+          type="textarea"
+          value={user.buyerProfile.shippingAddress || ""}
+          onChange={(e) => onProfileChange(e, "buyerProfile")}
+          placeholder="456 Avenue de la Livraison, Ville"
+        />
+        <FormField
+          label="Limite de crédit"
+          name="creditLimit"
+          type="number"
+          value={user.buyerProfile.creditLimit || ""}
+          onChange={(e) => onProfileChange(e, "buyerProfile")}
+          placeholder="10000.00"
+        />
+        <FormField
+          label="Jours de conditions de paiement"
+          name="paymentTermsDays"
+          type="number"
+          value={user.buyerProfile.paymentTermsDays || ""}
+          onChange={(e) => onProfileChange(e, "buyerProfile")}
+          placeholder="30"
+        />
+      </>
+    )}
+  </>
+);
 
-    if (!formData.name?.trim()) {
-      newErrors.name = 'Le nom est requis';
-    }
-
-    if (!formData.email?.trim()) {
-      newErrors.email = 'L\'email est requis';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'L\'email n\'est pas valide';
-    }
-
-    if (!formData.phone?.trim()) {
-      newErrors.phone = 'Le téléphone est requis';
-    }
-
-    if (!formData.type) {
-      newErrors.type = 'Le type d\'utilisateur est requis';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (validateForm()) {
-      onSubmit(formData);
-    }
-  };
-
-  const handleInputChange = (field: keyof User, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-    
-    // Clear error when user starts typing
-    if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: '' }));
-    }
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="p-6">
-      <div className="space-y-4">
-        {/* Name */}
-        <div>
-          <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
-            Nom complet *
-          </label>
-          <input
-            type="text"
-            id="name"
-            value={formData.name}
-            onChange={(e) => handleInputChange('name', e.target.value)}
-            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 ${
-              errors.name ? 'border-red-300' : 'border-gray-300'
-            }`}
-            placeholder="Entrez le nom complet"
-          />
-          {errors.name && (
-            <p className="mt-1 text-sm text-red-600">{errors.name}</p>
-          )}
-        </div>
-
-        {/* Email */}
-        <div>
-          <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-            Adresse email *
-          </label>
-          <input
-            type="email"
-            id="email"
-            value={formData.email}
-            onChange={(e) => handleInputChange('email', e.target.value)}
-            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 ${
-              errors.email ? 'border-red-300' : 'border-gray-300'
-            }`}
-            placeholder="exemple@email.com"
-          />
-          {errors.email && (
-            <p className="mt-1 text-sm text-red-600">{errors.email}</p>
-          )}
-        </div>
-
-        {/* Phone */}
-        <div>
-          <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
-            Numéro de téléphone *
-          </label>
-          <input
-            type="tel"
-            id="phone"
-            value={formData.phone}
-            onChange={(e) => handleInputChange('phone', e.target.value)}
-            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 ${
-              errors.phone ? 'border-red-300' : 'border-gray-300'
-            }`}
-            placeholder="+225 XX XX XX XX"
-          />
-          {errors.phone && (
-            <p className="mt-1 text-sm text-red-600">{errors.phone}</p>
-          )}
-        </div>
-
-        {/* User Type */}
-        <div>
-          <label htmlFor="type" className="block text-sm font-medium text-gray-700 mb-2">
-            Type d'utilisateur *
-          </label>
-          <select
-            id="type"
-            value={formData.type}
-            onChange={(e) => handleInputChange('type', e.target.value)}
-            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 ${
-              errors.type ? 'border-red-300' : 'border-gray-300'
-            }`}
-          >
-            <option value="farmer">Agriculteur</option>
-            <option value="investor">Investisseur</option>
-            <option value="agent">Agent</option>
-          </select>
-          {errors.type && (
-            <p className="mt-1 text-sm text-red-600">{errors.type}</p>
-          )}
-        </div>
-
-        {/* Location */}
-        <div>
-          <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-2">
-            Localisation
-          </label>
-          <input
-            type="text"
-            id="location"
-            value={formData.location}
-            onChange={(e) => handleInputChange('location', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
-            placeholder="Ville, Région"
-          />
-        </div>
-      </div>
-
-      {/* Actions */}
-      <div className="flex justify-end space-x-3 mt-6 pt-6 border-t border-gray-200">
-        <button
-          type="button"
-          onClick={onCancel}
-          className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-green-500"
-        >
-          Annuler
-        </button>
-        <button
-          type="submit"
-          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
-        >
-          {initialData ? 'Modifier' : 'Créer'}
-        </button>
-      </div>
-    </form>
-  );
-}
+export default UserForm;

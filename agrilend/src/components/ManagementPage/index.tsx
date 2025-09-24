@@ -35,7 +35,7 @@ interface ManagementPageConfig<T extends { id: number }> {
     type?: 'text' | 'date' | 'currency' | 'number' | 'status';
     format?: (value: unknown) => string;
   }>;
-  columns: (columnHelper: ReturnType<typeof createColumnHelper<T>>) => ColumnDef<T>[];
+  columns: ((columnHelper: ReturnType<typeof createColumnHelper<T>>) => ColumnDef<T>[]) | ColumnDef<T>[];
   defaultFormData: Partial<T>;
   validationRules?: Record<string, (value: unknown) => string | null>;
 }
@@ -52,8 +52,18 @@ export const ManagementPage = <T extends { id: number }>({
   onRefresh?: () => void;
   onExport?: () => void;
 }) => {
-  const { title, description, icon: Icon, stats, formFields, viewFields, columns, defaultFormData, validationRules } = config;
-  
+  const { 
+    title, 
+    description, 
+    icon: Icon, 
+    stats, 
+    formFields, 
+    viewFields, 
+    columns, 
+    defaultFormData, 
+    validationRules 
+  } = config;
+
   // Hooks personnalisés
   const { openModal, closeModal, isModalOpen } = useModals({
     add: false,
@@ -61,9 +71,9 @@ export const ManagementPage = <T extends { id: number }>({
     view: false,
     delete: false
   });
-  
+
   const { addNotification } = useNotifications();
-  
+
   const {
     data: items,
     selectedItem,
@@ -77,7 +87,14 @@ export const ManagementPage = <T extends { id: number }>({
 
   // Configuration des colonnes du tableau
   const columnHelper = createColumnHelper<T>();
-  const tableColumns = useMemo(() => columns(columnHelper), [columnHelper, columns]);
+  const tableColumns = useMemo<ColumnDef<T>[]>(() => {
+    // Vérifie si columns est une fonction
+    if (typeof columns === 'function') {
+      return columns(columnHelper);
+    }
+    // Sinon, retourne directement le tableau (compatibilité)
+    return columns;
+  }, [columnHelper, columns]);
 
   // Handlers optimisés
   const handleAdd = () => {
@@ -85,21 +102,29 @@ export const ManagementPage = <T extends { id: number }>({
     openModal('add');
   };
 
-  const handleSubmitCreate = async () => {
-    await handleCreate(formData, () => {
-      closeModal('add');
-      addNotification('success', 'Succès', 'Élément ajouté avec succès !');
-    });
-  };
+ const handleSubmitCreate = async () => {
+  try {
+    await handleCreate(formData);
+    closeModal('add');
+    addNotification('success', 'Succès', 'Élément ajouté avec succès !');
+  } catch (error) {
+    console.error(error); // Pour debugger si besoin
+    addNotification('error', 'Erreur', 'Impossible d’ajouter l’élément.');
+  }
+};
 
-  const handleSubmitEdit = async () => {
-    if (selectedItem) {
-      await handleUpdate(selectedItem.id, formData, () => {
-        closeModal('edit');
-        addNotification('success', 'Succès', 'Élément modifié avec succès !');
-      });
-    }
-  };
+const handleSubmitEdit = async () => {
+  if (!selectedItem) return;
+
+  try {
+    await handleUpdate(selectedItem.id, formData);
+    closeModal('edit');
+    addNotification('success', 'Succès', 'Élément modifié avec succès !');
+  } catch (error) {
+    console.error(error); // Pour debugger si besoin
+    addNotification('error', 'Erreur', 'Impossible de modifier l’élément.');
+  }
+};
 
   const handleConfirmDelete = async () => {
     if (selectedItem) {

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { DollarSign, CheckCircle, XCircle, Clock, Wallet, Shield, Activity, Coins, Zap } from 'lucide-react';
 import { createColumnHelper, ColumnDef } from '@tanstack/react-table';
 import { ManagementPage } from '../components/ManagementPage';
@@ -9,13 +9,13 @@ import FormField from '../components/FormField';
 // Type pour les transactions financières
 interface FinancialTransaction {
   id: number;
-  type: 'sequester' | 'release' | 'staking' | 'fee' | 'refund';
+  type: 'TOKENIZATION' | 'ESCROW_DEPOSIT' | 'ESCROW_RELEASE' | 'FARMER_PAYMENT' | 'PLATFORM_FEE' | 'STAKING_REWARD' | 'REFUND';
   orderId: number;
   farmer: string;
   buyer: string;
   amount: number;
   description: string;
-  status: 'pending' | 'completed' | 'failed';
+  status: 'PENDING' | 'SUCCESS' | 'FAILED' | 'REVERSED';
   createdAt: string;
   completedAt?: string;
   hederaTxId?: string;
@@ -34,20 +34,23 @@ interface FinancialActionsProps {
 const FinancialActions: React.FC<FinancialActionsProps> = ({ transaction, onApprove, onReject, onStake }) => {
   const getTypeColor = (type: FinancialTransaction['type']) => {
     switch (type) {
-      case 'sequester': return 'bg-blue-100 text-blue-800';
-      case 'release': return 'bg-green-100 text-green-800';
-      case 'staking': return 'bg-purple-100 text-purple-800';
-      case 'fee': return 'bg-orange-100 text-orange-800';
-      case 'refund': return 'bg-red-100 text-red-800';
+      case 'ESCROW_DEPOSIT': return 'bg-blue-100 text-blue-800';
+      case 'ESCROW_RELEASE': return 'bg-green-100 text-green-800';
+      case 'STAKING_REWARD': return 'bg-purple-100 text-purple-800';
+      case 'PLATFORM_FEE': return 'bg-orange-100 text-orange-800';
+      case 'REFUND': return 'bg-red-100 text-red-800';
+      case 'TOKENIZATION': return 'bg-indigo-100 text-indigo-800';
+      case 'FARMER_PAYMENT': return 'bg-teal-100 text-teal-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
 
   const getStatusColor = (status: FinancialTransaction['status']) => {
     switch (status) {
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
-      case 'completed': return 'bg-green-100 text-green-800';
-      case 'failed': return 'bg-red-100 text-red-800';
+      case 'PENDING': return 'bg-yellow-100 text-yellow-800';
+      case 'SUCCESS': return 'bg-green-100 text-green-800';
+      case 'FAILED': return 'bg-red-100 text-red-800';
+      case 'REVERSED': return 'bg-gray-400 text-gray-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -63,7 +66,7 @@ const FinancialActions: React.FC<FinancialActionsProps> = ({ transaction, onAppr
               <div className="flex items-center">
                 <span className="font-medium w-20">Type:</span>
                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${getTypeColor(transaction.type)}`}>
-                  {transaction.type.charAt(0).toUpperCase() + transaction.type.slice(1)}
+                  {transaction.type.replace('_', ' ').charAt(0).toUpperCase() + transaction.type.replace('_', ' ').slice(1)}
                 </span>
               </div>
               <div className="flex items-center">
@@ -103,7 +106,7 @@ const FinancialActions: React.FC<FinancialActionsProps> = ({ transaction, onAppr
 
       {/* Actions disponibles */}
       <div className="flex flex-wrap gap-2">
-        {transaction.status === 'pending' && (
+        {transaction.status === 'PENDING' && (
           <>
             <button
               onClick={() => onApprove(transaction)}
@@ -122,7 +125,7 @@ const FinancialActions: React.FC<FinancialActionsProps> = ({ transaction, onAppr
           </>
         )}
         
-        {transaction.type === 'sequester' && transaction.status === 'completed' && (
+        {transaction.type === 'ESCROW_DEPOSIT' && transaction.status === 'SUCCESS' && (
           <button
             onClick={() => onStake(transaction)}
             className="flex items-center px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
@@ -143,70 +146,93 @@ const FinancialActions: React.FC<FinancialActionsProps> = ({ transaction, onAppr
 
 // Configuration pour la page de gestion financière optimisée
 const FinancialManagementOptimized: React.FC = () => {
-  // États pour les modals spécialisés
+  const [transactions, setTransactions] = useState<FinancialTransaction[]>([]); // State to hold fetched transactions
   const [showApproveModal, setShowApproveModal] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [showStakeModal, setShowStakeModal] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<FinancialTransaction | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Données d'exemple
-  const transactionsData: FinancialTransaction[] = useMemo(() => [
-    {
-      id: 1,
-      type: 'sequester',
-      orderId: 101,
-      farmer: 'Jean Kouassi',
-      buyer: 'Restaurant Le Gourmet',
-      amount: 40000,
-      description: 'Séquestre pour commande de tomates',
-      status: 'pending',
-      createdAt: '2024-09-20',
-      platformFee: 2000,
-      hederaTxId: '0.0.1234567@1678888888.123456789'
-    },
-    {
-      id: 2,
-      type: 'release',
-      orderId: 102,
-      farmer: 'Fatou Keita',
-      buyer: 'Supermarché Fraîcheur',
-      amount: 60000,
-      description: 'Libération des fonds pour mangues',
-      status: 'completed',
-      createdAt: '2024-09-18',
-      completedAt: '2024-09-19',
-      platformFee: 3000,
-      hederaTxId: '0.0.7654321@1678999999.987654321'
-    },
-    {
-      id: 3,
-      type: 'staking',
-      orderId: 103,
-      farmer: 'Ibrahim Traoré',
-      buyer: 'Grossiste Céréales',
-      amount: 100000,
-      description: 'Mise en staking pour récompenses',
-      status: 'completed',
-      createdAt: '2024-09-15',
-      completedAt: '2024-09-16',
-      stakingReward: 5000,
-      hederaTxId: '0.0.9876543@1678777777.543210987'
-    },
-    {
-      id: 4,
-      type: 'fee',
-      orderId: 104,
-      farmer: 'Aisha Diallo',
-      buyer: 'Hôtel Ivoire',
-      amount: 1800,
-      description: 'Frais de plateforme',
-      status: 'failed',
-      createdAt: '2024-09-10',
-      platformFee: 1800,
-      hederaTxId: '0.0.1122334@1679111111.223344556'
-    }
-  ], []);
+  // Function to simulate fetching transactions from an API
+  const fetchTransactions = async () => {
+    setIsLoading(true);
+    // In a real application, this would be an API call
+    await new Promise(resolve => setTimeout(resolve, 500)); 
+    const fetchedTransactions: FinancialTransaction[] = [
+      {
+        id: 1,
+        type: 'ESCROW_DEPOSIT',
+        orderId: 101,
+        farmer: 'Jean Kouassi',
+        buyer: 'Restaurant Le Gourmet',
+        amount: 40000,
+        description: 'Séquestre pour commande de tomates',
+        status: 'PENDING',
+        createdAt: '2024-09-20',
+        platformFee: 2000,
+        hederaTxId: '0.0.1234567@1678888888.123456789'
+      },
+      {
+        id: 2,
+        type: 'ESCROW_RELEASE',
+        orderId: 102,
+        farmer: 'Fatou Keita',
+        buyer: 'Supermarché Fraîcheur',
+        amount: 60000,
+        description: 'Libération des fonds pour mangues',
+        status: 'SUCCESS',
+        createdAt: '2024-09-18',
+        completedAt: '2024-09-19',
+        platformFee: 3000,
+        hederaTxId: '0.0.7654321@1678999999.987654321'
+      },
+      {
+        id: 3,
+        type: 'STAKING_REWARD',
+        orderId: 103,
+        farmer: 'Ibrahim Traoré',
+        buyer: 'Grossiste Céréales',
+        amount: 100000,
+        description: 'Mise en staking pour récompenses',
+        status: 'SUCCESS',
+        createdAt: '2024-09-15',
+        completedAt: '2024-09-16',
+        stakingReward: 5000,
+        hederaTxId: '0.0.9876543@1678777777.543210987'
+      },
+      {
+        id: 4,
+        type: 'PLATFORM_FEE',
+        orderId: 104,
+        farmer: 'Aisha Diallo',
+        buyer: 'Hôtel Ivoire',
+        amount: 1800,
+        description: 'Frais de plateforme',
+        status: 'FAILED',
+        createdAt: '2024-09-10',
+        platformFee: 1800,
+        hederaTxId: '0.0.1122334@1679111111.223344556'
+      },
+      {
+        id: 5,
+        type: 'REFUND',
+        orderId: 105,
+        farmer: 'Moussa Koné',
+        buyer: 'Client Test',
+        amount: 5000,
+        description: 'Remboursement commande annulée',
+        status: 'REVERSED',
+        createdAt: '2024-09-22',
+        hederaTxId: '0.0.9988776@1679222222.334455667'
+      }
+    ];
+    setTransactions(fetchedTransactions);
+    setIsLoading(false);
+  };
+
+  useEffect(() => {
+    fetchTransactions();
+  }, []); // Fetch transactions on component mount
 
   // Handlers pour les actions spécialisées
   const handleApprove = useCallback((transaction: FinancialTransaction) => {
@@ -233,17 +259,19 @@ const FinancialManagementOptimized: React.FC = () => {
         cell: (info) => {
           const type = info.getValue();
           const colors = {
-            sequester: 'bg-blue-100 text-blue-800',
-            release: 'bg-green-100 text-green-800',
-            staking: 'bg-purple-100 text-purple-800',
-            fee: 'bg-orange-100 text-orange-800',
-            refund: 'bg-red-100 text-red-800'
+            TOKENIZATION: 'bg-indigo-100 text-indigo-800',
+            ESCROW_DEPOSIT: 'bg-blue-100 text-blue-800',
+            ESCROW_RELEASE: 'bg-green-100 text-green-800',
+            FARMER_PAYMENT: 'bg-teal-100 text-teal-800',
+            PLATFORM_FEE: 'bg-orange-100 text-orange-800',
+            STAKING_REWARD: 'bg-purple-100 text-purple-800',
+            REFUND: 'bg-red-100 text-red-800'
           };
           return (
             <div className="flex items-center">
               <DollarSign className="h-5 w-5 text-gray-500 mr-2" />
               <span className={`px-2 py-1 rounded-full text-xs font-medium ${colors[type as keyof typeof colors]}`}>
-                {type.charAt(0).toUpperCase() + type.slice(1)}
+                {type.replace('_', ' ').charAt(0).toUpperCase() + type.replace('_', ' ').slice(1)}
               </span>
             </div>
           );
@@ -296,9 +324,10 @@ const FinancialManagementOptimized: React.FC = () => {
         cell: (info) => {
           const status = info.getValue();
           const colors = {
-            pending: 'bg-yellow-100 text-yellow-800',
-            completed: 'bg-green-100 text-green-800',
-            failed: 'bg-red-100 text-red-800'
+            PENDING: 'bg-yellow-100 text-yellow-800',
+            SUCCESS: 'bg-green-100 text-green-800',
+            FAILED: 'bg-red-100 text-red-800',
+            REVERSED: 'bg-gray-400 text-gray-800'
           };
           return (
             <span className={`px-2 py-1 rounded-full text-xs font-medium ${colors[status as keyof typeof colors]}`}>
@@ -336,17 +365,17 @@ const FinancialManagementOptimized: React.FC = () => {
           <div className="flex items-center space-x-2">
             <button
               onClick={() => handleApprove(row.original)}
-              className="text-green-600 hover:text-green-900 transition-colors"
-              title="Approuver la transaction"
+              className="flex items-center px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
             >
-              <CheckCircle className="h-5 w-5" />
+              <CheckCircle className="h-4 w-4 mr-2" />
+              Approuver
             </button>
             <button
               onClick={() => handleReject(row.original)}
-              className="text-red-600 hover:text-red-900 transition-colors"
-              title="Rejeter la transaction"
+              className="flex items-center px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
             >
-              <XCircle className="h-5 w-5" />
+              <XCircle className="h-4 w-4 mr-2" />
+              Rejeter
             </button>
           </div>
         ),
@@ -359,20 +388,22 @@ const FinancialManagementOptimized: React.FC = () => {
     {
       name: 'type', label: 'Type de transaction', type: 'select', required: true,
       options: [
-        { value: 'sequester', label: 'Séquestre' },
-        { value: 'release', label: 'Libération' },
-        { value: 'staking', label: 'Staking' },
-        { value: 'fee', label: 'Frais de plateforme' },
-        { value: 'refund', label: 'Remboursement' }
+        { value: 'TOKENIZATION', label: 'Tokenisation' },
+        { value: 'ESCROW_DEPOSIT', label: 'Dépôt Séquestre' },
+        { value: 'ESCROW_RELEASE', label: 'Libération Séquestre' },
+        { value: 'FARMER_PAYMENT', label: 'Paiement Agriculteur' },
+        { value: 'PLATFORM_FEE', label: 'Frais Plateforme' },
+        { value: 'STAKING_REWARD', label: 'Récompense Staking' },
+        { value: 'REFUND', label: 'Remboursement' }
       ]
     },
-    { name: 'orderId', label: 'ID Commande', type: 'number', placeholder: '123', required: true, min: 1 },
-    { name: 'farmer', label: 'Agriculteur', type: 'text', placeholder: 'Nom de l\'agriculteur', required: true },
-    { name: 'buyer', label: 'Acheteur', type: 'text', placeholder: 'Nom de l\'acheteur', required: true },
-    { name: 'amount', label: 'Montant (FCFA)', type: 'number', placeholder: '50000', required: true, min: 1 },
-    { name: 'description', label: 'Description', type: 'textarea', placeholder: 'Description de la transaction...', required: true, rows: 3 },
-    { name: 'platformFee', label: 'Frais de plateforme (FCFA)', type: 'number', placeholder: '2500', min: 0 },
-    { name: 'stakingReward', label: 'Récompense staking (FCFA)', type: 'number', placeholder: '1000', min: 0 }
+    { name: 'orderId', label: 'ID Commande', type: 'number' as const, placeholder: '123', required: true, min: 1 },
+    { name: 'farmer', label: 'Agriculteur', type: 'text' as const, placeholder: 'Nom de l\'agriculteur', required: true },
+    { name: 'buyer', label: 'Acheteur', type: 'text' as const, placeholder: 'Nom de l\'acheteur', required: true },
+    { name: 'amount', label: 'Montant (FCFA)', type: 'number' as const, placeholder: '50000', required: true, min: 1 },
+    { name: 'description', label: 'Description', type: 'textarea' as const, placeholder: 'Description de la transaction...', required: true, rows: 3 },
+    { name: 'platformFee', label: 'Frais de plateforme (FCFA)', type: 'number' as const, placeholder: '2500', min: 0 },
+    { name: 'stakingReward', label: 'Récompense staking (FCFA)', type: 'number' as const, placeholder: '1000', min: 0 }
   ], []);
 
   // Configuration des champs de visualisation
@@ -393,13 +424,13 @@ const FinancialManagementOptimized: React.FC = () => {
 
   // Configuration par défaut du formulaire
   const defaultFormData = useMemo(() => ({
-    type: 'sequester' as const,
-    orderId: '',
+    type: 'ESCROW_DEPOSIT' as const,
+    orderId: 0,
     farmer: '',
     buyer: '',
-    amount: '',
+    amount: 0,
     description: '',
-    status: 'pending' as const,
+    status: 'PENDING' as const,
     createdAt: new Date().toISOString().split('T')[0],
     platformFee: 0,
     stakingReward: 0
@@ -407,83 +438,118 @@ const FinancialManagementOptimized: React.FC = () => {
 
   // Règles de validation
   const validationRules = useMemo(() => ({
-    type: { required: true },
-    orderId: { required: true, min: 1 },
-    farmer: { required: true, minLength: 2 },
-    buyer: { required: true, minLength: 2 },
-    amount: { required: true, min: 1 },
-    description: { required: true, minLength: 10 }
+    type: (value: unknown) => { if (!value) return 'Le type de transaction est requis'; return null; },
+    orderId: (value: unknown) => { if (typeof value !== 'number' || value < 1) return 'L\'ID de commande doit être un nombre positif'; return null; },
+    farmer: (value: unknown) => { if (!value || (typeof value === 'string' && value.length < 2)) return 'L\'agriculteur est requis'; return null; },
+    buyer: (value: unknown) => { if (!value || (typeof value === 'string' && value.length < 2)) return 'L\'acheteur est requis'; return null; },
+    amount: (value: unknown) => { if (typeof value !== 'number' || value < 1) return 'Le montant doit être un nombre positif'; return null; },
+    description: (value: unknown) => { if (!value || (typeof value === 'string' && value.length < 10)) return 'La description doit contenir au moins 10 caractères'; return null; },
+    platformFee: (value: unknown) => { if (typeof value !== 'number' || value < 0) return 'Les frais de plateforme doivent être un nombre positif'; return null; },
+    stakingReward: (value: unknown) => { if (typeof value !== 'number' || value < 0) return 'La récompense de staking doit être un nombre positif'; return null; },
   }), []);
 
   // Statistiques
   const stats = useMemo(() => [
     {
       label: 'Total Transactions',
-      value: transactionsData.length,
+      value: transactions.length,
       icon: DollarSign,
       color: 'text-blue-600',
       bgColor: 'bg-blue-100'
     },
     {
       label: 'En Attente',
-      value: transactionsData.filter(t => t.status === 'pending').length,
+      value: transactions.filter(t => t.status === 'PENDING').length,
       icon: Clock,
       color: 'text-yellow-600',
       bgColor: 'bg-yellow-100'
     },
     {
       label: 'Complétées',
-      value: transactionsData.filter(t => t.status === 'completed').length,
+      value: transactions.filter(t => t.status === 'SUCCESS').length,
       icon: CheckCircle,
       color: 'text-green-600',
       bgColor: 'bg-green-100'
     },
     {
       label: 'En Staking',
-      value: transactionsData.filter(t => t.type === 'staking').length,
+      value: transactions.filter(t => t.type === 'STAKING_REWARD').length,
       icon: Zap,
       color: 'text-purple-600',
       bgColor: 'bg-purple-100'
     }
-  ], [transactionsData]);
+  ], [transactions]);
 
   const handleApproveSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    
-    // Simulation d'API
-    await new Promise(resolve => setTimeout(resolve, 200));
-    
-    console.log('Approving transaction:', selectedTransaction);
-    setIsLoading(false);
-    setShowApproveModal(false);
-    setSelectedTransaction(null);
+    try {
+      // TODO: Replace with actual API call to approve transaction
+      // Example: await fetch(`/api/transactions/${selectedTransaction?.id}/approve`, {
+      //   method: 'PUT',
+      //   headers: { 'Content-Type': 'application/json' },
+      //   body: JSON.stringify({ approvalComment: e.target.approvalComment.value }),
+      // });
+      await new Promise(resolve => setTimeout(resolve, 500)); // Simulate API call
+      console.log('Approving transaction:', selectedTransaction);
+      alert('Transaction approuvée avec succès !');
+      setShowApproveModal(false);
+      setSelectedTransaction(null);
+      fetchTransactions(); // Refresh transactions list
+    } catch (error) {
+      console.error('Error approving transaction:', error);
+      alert('Erreur lors de l\'approbation de la transaction.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleRejectSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    
-    // Simulation d'API
-    await new Promise(resolve => setTimeout(resolve, 200));
-    
-    console.log('Rejecting transaction:', selectedTransaction);
-    setIsLoading(false);
-    setShowRejectModal(false);
-    setSelectedTransaction(null);
+    try {
+      // TODO: Replace with actual API call to reject transaction
+      // Example: await fetch(`/api/transactions/${selectedTransaction?.id}/reject`, {
+      //   method: 'PUT',
+      //   headers: { 'Content-Type': 'application/json' },
+      //   body: JSON.stringify({ rejectionReason: e.target.rejectionReason.value, rejectionComment: e.target.rejectionComment.value }),
+      // });
+      await new Promise(resolve => setTimeout(resolve, 500)); // Simulate API call
+      console.log('Rejecting transaction:', selectedTransaction);
+      alert('Transaction rejetée avec succès !');
+      setShowRejectModal(false);
+      setSelectedTransaction(null);
+      fetchTransactions(); // Refresh transactions list
+    } catch (error) {
+      console.error('Error rejecting transaction:', error);
+      alert('Erreur lors du rejet de la transaction.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleStakeSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    
-    // Simulation d'API
-    await new Promise(resolve => setTimeout(resolve, 200));
-    
-    console.log('Staking transaction:', selectedTransaction);
-    setIsLoading(false);
-    setShowStakeModal(false);
-    setSelectedTransaction(null);
+    try {
+      // TODO: Replace with actual API call to stake transaction
+      // Example: await fetch(`/api/transactions/${selectedTransaction?.id}/stake`, {
+      //   method: 'POST',
+      //   headers: { 'Content-Type': 'application/json' },
+      //   body: JSON.stringify({ stakeAmount: e.target.stakeAmount.value, stakingDuration: e.target.stakingDuration.value, stakingComment: e.target.stakingComment.value }),
+      // });
+      await new Promise(resolve => setTimeout(resolve, 500)); // Simulate API call
+      console.log('Staking transaction:', selectedTransaction);
+      alert('Transaction mise en staking avec succès !');
+      setShowStakeModal(false);
+      setSelectedTransaction(null);
+      fetchTransactions(); // Refresh transactions list
+    } catch (error) {
+      console.error('Error staking transaction:', error);
+      alert('Erreur lors de la mise en staking de la transaction.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const config = useMemo(() => ({
@@ -493,7 +559,7 @@ const FinancialManagementOptimized: React.FC = () => {
     stats,
     formFields,
     viewFields,
-    columns: (_columnHelper: ReturnType<typeof createColumnHelper<FinancialTransaction>>) => columns as ColumnDef<FinancialTransaction, unknown>[],
+    columns: columns as ColumnDef<FinancialTransaction, unknown>[],
     defaultFormData,
     validationRules
   }), [stats, formFields, viewFields, columns, defaultFormData, validationRules]);
@@ -502,7 +568,7 @@ const FinancialManagementOptimized: React.FC = () => {
     <>
       <ManagementPage<FinancialTransaction>
         config={config}
-        data={transactionsData}
+        data={transactions}
       />
 
       {/* Modal d'approbation */}
@@ -584,7 +650,6 @@ const FinancialManagementOptimized: React.FC = () => {
             value=""
             onChange={() => {}}
             placeholder="Détails du rejet..."
-            required
             rows={3}
           />
         </ModalForm>
