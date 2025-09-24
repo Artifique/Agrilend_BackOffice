@@ -1,11 +1,5 @@
 import React, { useState } from "react";
-import {
-  Bell,
-  AlertTriangle,
-  Info,
-  CheckCircle,
-  XCircle,
-} from "lucide-react"; // Icônes Lucide
+import { Bell, AlertTriangle, Info, CheckCircle, XCircle } from "lucide-react"; // Icônes Lucide
 
 interface Notification {
   id: number;
@@ -52,13 +46,13 @@ const Notifications: React.FC = () => {
     const base = read ? "opacity-60" : "";
     switch (type) {
       case "warning":
-        return bg-orange-50 border-orange-200 text-orange-800 ${base};
+        return `bg-orange-50 border-orange-200 text-orange-800 ${base}`;
       case "info":
-        return bg-blue-50 border-blue-200 text-blue-800 ${base};
+        return `bg-blue-50 border-blue-200 text-blue-800 ${base}`;
       case "success":
-        return bg-green-50 border-green-200 text-green-800 ${base};
+        return `bg-green-50 border-green-200 text-green-800 ${base}`;
       default:
-        return bg-gray-50 border-gray-200 text-gray-800 ${base};
+        return `bg-gray-50 border-gray-200 text-gray-800 ${base}`;
     }
   };
 
@@ -79,9 +73,7 @@ const Notifications: React.FC = () => {
   // Marquer comme lue
   const markAsRead = (id: number) => {
     setAlerts((prev) =>
-      prev.map((notif) =>
-        notif.id === id ? { ...notif, read: true } : notif
-      )
+      prev.map((notif) => (notif.id === id ? { ...notif, read: true } : notif))
     );
   };
 
