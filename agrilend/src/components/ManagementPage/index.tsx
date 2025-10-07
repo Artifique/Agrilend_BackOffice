@@ -41,17 +41,7 @@ interface ManagementPageConfig<T extends { id: number }> {
 }
 
 // Composant de page de gestion générique
-export const ManagementPage = <T extends { id: number }>({
-  config,
-  data,
-  onRefresh,
-  onExport
-}: {
-  config: ManagementPageConfig<T>;
-  data: T[];
-  onRefresh?: () => void;
-  onExport?: () => void;
-}) => {
+export const ManagementPage = <T extends { id: number }>({ config, data, onRefresh, onExport, service }: { config: ManagementPageConfig<T>; data: T[]; onRefresh?: () => void; onExport?: () => void; service: { create: (data: Partial<T>) => Promise<T>; update: (id: number, data: Partial<T>) => Promise<T>; remove: (id: number) => Promise<void>; }; }) => {
   const { 
     title, 
     description, 
@@ -83,8 +73,7 @@ export const ManagementPage = <T extends { id: number }>({
     handleCreate,
     handleUpdate,
     handleDelete
-  } = useEntityManagement<T>(data, defaultFormData);
-
+  } = useEntityManagement<T>(data, defaultFormData, service);
   // Configuration des colonnes du tableau
   const columnHelper = createColumnHelper<T>();
   const tableColumns = useMemo<ColumnDef<T>[]>(() => {
@@ -102,11 +91,36 @@ export const ManagementPage = <T extends { id: number }>({
     openModal('add');
   };
 
- const handleSubmitCreate = async () => {
+  const handleSubmitCreate = async () => {
+  const errors: { [key: string]: string } = {};
+  let isValid = true;
+
+  // Client-side validation
+  for (const fieldName in formData) {
+    const rule = validationRules?.[fieldName as keyof typeof validationRules];
+    if (rule) {
+      const error = rule(formData[fieldName as keyof typeof formData]);
+      if (error) {
+        errors[fieldName] = error;
+        isValid = false;
+      }
+    }
+  }
+
+  console.log("Validation errors:", errors); // Debug log
+  console.log("Is form valid:", isValid); // Debug log
+
+  if (!isValid) {
+    // Display errors (e.g., using notifications)
+    Object.values(errors).forEach(errorMsg => addNotification('error', 'Validation Error', errorMsg));
+    return;
+  }
+
   try {
-    await handleCreate(formData);
-    closeModal('add');
-    addNotification('success', 'Succès', 'Élément ajouté avec succès !');
+    await handleCreate(() => {
+      closeModal('add');
+      addNotification('success', 'Succès', 'Élément ajouté avec succès !');
+    });
   } catch (error) {
     console.error(error); // Pour debugger si besoin
     addNotification('error', 'Erreur', 'Impossible d’ajouter l’élément.');
@@ -117,9 +131,10 @@ const handleSubmitEdit = async () => {
   if (!selectedItem) return;
 
   try {
-    await handleUpdate(selectedItem.id, formData);
-    closeModal('edit');
-    addNotification('success', 'Succès', 'Élément modifié avec succès !');
+    await handleUpdate(selectedItem.id, () => {
+      closeModal('edit');
+      addNotification('success', 'Succès', 'Élément modifié avec succès !');
+    });
   } catch (error) {
     console.error(error); // Pour debugger si besoin
     addNotification('error', 'Erreur', 'Impossible de modifier l’élément.');
@@ -190,7 +205,7 @@ const handleSubmitEdit = async () => {
           showSearch={true}
           showPagination={true}
           pageSize={10}
-          showActions={true}
+          showActions={false}
         />
       </div>
 

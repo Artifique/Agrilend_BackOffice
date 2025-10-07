@@ -1,0 +1,25 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "vite build",
+			"type": "shell",
+			"command": "npm run build"
+		},
+		{
+			"label": "vite dev",
+			"type": "shell",
+			"command": "npm run dev"
+		},
+		{
+			"label": "vite dev",
+			"type": "shell",
+			"command": "npm run dev"
+		},
+		{
+			"label": "vite dev",
+			"type": "shell",
+			"command": "npm run dev"
+		}
+	]
+}

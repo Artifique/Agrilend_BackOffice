@@ -1,0 +1,122 @@
+equest URL
+http://localhost:8080/api/admin/products
+Request Method
+POST
+Status Code
+400 Bad Request
+Remote Address
+[::1]:8080
+Referrer Policy
+strict-origin-when-cross-origin
+access-control-allow-credentials
+true
+access-control-allow-origin
+http://localhost:3000
+cache-control
+no-cache, no-store, max-age=0, must-revalidate
+connection
+close
+content-type
+application/json
+date
+Tue, 07 Oct 2025 14:09:52 GMT
+expires
+0
+pragma
+no-cache
+transfer-encoding
+chunked
+vary
+Origin
+vary
+Access-Control-Request-Method
+vary
+Access-Control-Request-Headers
+x-content-type-options
+nosniff
+x-frame-options
+DENY
+x-xss-protection
+0
+accept
+application/json, text/plain, */*
+accept-encoding
+gzip, deflate, br, zstd
+accept-language
+fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7
+authorization
+Bearer eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJkZGFvdWFydGlAZ21haWwuY29tIiwidXNlcklkIjoxLCJhdXRob3JpdGllcyI6IlJPTEVfQURNSU4iLCJyb2xlIjoiQURNSU4iLCJpYXQiOjE3NTk4NDE4NTgsImV4cCI6MTc1OTkyODI1OH0.9RHx-R4IsidLSitHVNljCAH2KPd4f8RrDKLgxkw2tX26dbJahd11IFd4qtBOdfYqnansOTsFheJvWjpPFJgwSw
+connection
+keep-alive
+content-length
+162
+content-type
+application/json
+host
+localhost:8080
+origin
+http://localhost:3000
+referer
+http://localhost:3000/
+sec-ch-ua
+"Chromium";v="140", "Not=A?Brand";v="24", "Google Chrome";v="140"
+sec-ch-ua-mobile
+?0
+sec-ch-ua-platform
+"Windows"
+sec-fetch-dest
+empty
+sec-fetch-mode
+cors
+sec-fetch-site
+same-site
+user-agent
+Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36
+
+
+{name: "", description: "", category: "", unit: "KG", imageUrl: null,…}
+active
+: 
+true
+category
+: 
+""
+createdAt
+: 
+"2025-10-07T14:09:52.064Z"
+description
+: 
+""
+imageUrl
+: 
+null
+name
+: 
+""
+unit
+: 
+"KG"
+updatedAt
+: 
+"2025-10-07T14:09:52.064Z"
+
+preview:
+{success: false, message: "Erreurs de validation",…}
+data
+: 
+{name: "la taille doit être comprise entre 2 et 100", category: "ne doit pas être vide"}
+category
+: 
+"ne doit pas être vide"
+name
+: 
+"la taille doit être comprise entre 2 et 100"
+message
+: 
+"Erreurs de validation"
+success
+: 
+false
+timestamp
+: 
+"2025-10-07T14:09:52.1911826"
