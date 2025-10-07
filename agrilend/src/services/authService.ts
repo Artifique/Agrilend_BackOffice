@@ -8,8 +8,14 @@ export interface LoginCredentials {
 }
 
 export interface AuthResponse {
-  token: string;
-  user: UserProfile;
+  accessToken: string;
+  refreshToken: string;
+  tokenType: string;
+  id: number; // userId from backend
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: "ADMIN" | "FARMER" | "BUYER";
 }
 
 export interface UserProfile {
@@ -18,6 +24,7 @@ export interface UserProfile {
   firstName: string;
   lastName: string;
   role: "ADMIN" | "FARMER" | "BUYER";
+  // Add other fields if they come with the user profile in the login response
 }
 
 // --- TYPES POUR L'API ---
@@ -25,6 +32,7 @@ interface ApiResponse<T> {
   success: boolean;
   message: string;
   data: T;
+  timestamp?: string; // Added timestamp as it's in the log
 }
 
 // --- FONCTIONS DU SERVICE ---
@@ -50,8 +58,8 @@ export const login = async (credentials: LoginCredentials): Promise<AuthResponse
     const authData = response.data.data;
 
     // 🔥 Sauvegarde du token dans localStorage
-    if (authData?.token) {
-      localStorage.setItem("authToken", authData.token);
+    if (authData?.accessToken) {
+      localStorage.setItem("authToken", authData.accessToken);
     }
 
     return authData;

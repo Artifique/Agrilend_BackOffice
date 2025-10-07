@@ -1,122 +1,157 @@
-equest URL
-http://localhost:8080/api/admin/products
-Request Method
-POST
-Status Code
-400 Bad Request
-Remote Address
-[::1]:8080
-Referrer Policy
-strict-origin-when-cross-origin
-access-control-allow-credentials
-true
-access-control-allow-origin
-http://localhost:3000
-cache-control
-no-cache, no-store, max-age=0, must-revalidate
-connection
-close
-content-type
-application/json
-date
-Tue, 07 Oct 2025 14:09:52 GMT
-expires
-0
-pragma
-no-cache
-transfer-encoding
-chunked
-vary
-Origin
-vary
-Access-Control-Request-Method
-vary
-Access-Control-Request-Headers
-x-content-type-options
-nosniff
-x-frame-options
-DENY
-x-xss-protection
-0
-accept
-application/json, text/plain, */*
-accept-encoding
-gzip, deflate, br, zstd
-accept-language
-fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7
-authorization
-Bearer eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJkZGFvdWFydGlAZ21haWwuY29tIiwidXNlcklkIjoxLCJhdXRob3JpdGllcyI6IlJPTEVfQURNSU4iLCJyb2xlIjoiQURNSU4iLCJpYXQiOjE3NTk4NDE4NTgsImV4cCI6MTc1OTkyODI1OH0.9RHx-R4IsidLSitHVNljCAH2KPd4f8RrDKLgxkw2tX26dbJahd11IFd4qtBOdfYqnansOTsFheJvWjpPFJgwSw
-connection
-keep-alive
-content-length
-162
-content-type
-application/json
-host
-localhost:8080
-origin
-http://localhost:3000
-referer
-http://localhost:3000/
-sec-ch-ua
-"Chromium";v="140", "Not=A?Brand";v="24", "Google Chrome";v="140"
-sec-ch-ua-mobile
-?0
-sec-ch-ua-platform
-"Windows"
-sec-fetch-dest
-empty
-sec-fetch-mode
-cors
-sec-fetch-site
-same-site
-user-agent
-Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36
+Login request payload: {email: 'ddaouarti@gmail.com', password: 'admin123'}
+api.ts:19 ⚠️ Aucun token trouvé dans localStorage
+(anonymous) @ api.ts:19
+Promise.then
+_request @ axios.js?v=f77abd62:2288
+request @ axios.js?v=f77abd62:2197
+httpMethod @ axios.js?v=f77abd62:2334
+wrap @ axios.js?v=f77abd62:8
+login @ authService.ts:46
+(anonymous) @ AuthContext.tsx:64
+handleSubmit @ Login.tsx:43
+callCallback2 @ chunk-QT63QQJV.js?v=f77abd62:3674
+invokeGuardedCallbackDev @ chunk-QT63QQJV.js?v=f77abd62:3699
+invokeGuardedCallback @ chunk-QT63QQJV.js?v=f77abd62:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-QT63QQJV.js?v=f77abd62:3736
+executeDispatch @ chunk-QT63QQJV.js?v=f77abd62:7014
+processDispatchQueueItemsInOrder @ chunk-QT63QQJV.js?v=f77abd62:7034
+processDispatchQueue @ chunk-QT63QQJV.js?v=f77abd62:7043
+dispatchEventsForPlugins @ chunk-QT63QQJV.js?v=f77abd62:7051
+(anonymous) @ chunk-QT63QQJV.js?v=f77abd62:7174
+batchedUpdates$1 @ chunk-QT63QQJV.js?v=f77abd62:18913
+batchedUpdates @ chunk-QT63QQJV.js?v=f77abd62:3579
+dispatchEventForPluginEventSystem @ chunk-QT63QQJV.js?v=f77abd62:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-QT63QQJV.js?v=f77abd62:5478
+dispatchEvent @ chunk-QT63QQJV.js?v=f77abd62:5472
+dispatchDiscreteEvent @ chunk-QT63QQJV.js?v=f77abd62:5449Understand this warning
+authService.ts:52 Login response: {success: true, message: 'Connexion réussie', data: {…}, timestamp: '2025-10-07T18:32:12.5996005'}
+AuthContext.tsx:65 Login response from backend: {accessToken: 'eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJkZGFvdWFydGlAZ21ha…bVbvxZFt5n8AIkTAl5ftBPR7sdcP0ts-cTZfrnkTw-EqABWUA', refreshToken: 'eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJkZGFvdWFydGlAZ21ha…I44iNZoQGzNWq6w7hzAi4RmNCw31zhrt7UQ2BBrirEdgTa9dA', tokenType: 'Bearer', userId: 1, email: 'ddaouarti@gmail.com', …}
+AuthContext.tsx:73 Auth context updated: {newToken: 'eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJkZGFvdWFydGlAZ21ha…bVbvxZFt5n8AIkTAl5ftBPR7sdcP0ts-cTZfrnkTw-EqABWUA', userProfile: undefined}
+ProtectedRoute.tsx:13 ProtectedRoute - isAuthenticated: false
+ProtectedRoute.tsx:13 ProtectedRoute - isAuthenticated: false
+api.ts:17 ✅ Token ajouté: eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJkZGFvdWFydGlAZ21haWwuY29tIiwidXNlcklkIjoxLCJhdXRob3JpdGllcyI6IlJPTEVfQURNSU4iLCJyb2xlIjoiQURNSU4iLCJpYXQiOjE3NTk4NjE5MzIsImV4cCI6MTc1OTk0ODMzMn0.QGflFbhoVy7pmav__fI8TbjoqzWNo1FErsZykbVbvxZFt5n8AIkTAl5ftBPR7sdcP0ts-cTZfrnkTw-EqABWUA
+authService.ts:76 Profile response: {success: true, message: 'Profil récupéré avec succès', data: {…}, timestamp: '2025-10-07T18:32:12.6788403'}
+ProtectedRoute.tsx:13 ProtectedRoute - isAuthenticated: true
+ProtectedRoute.tsx:13 ProtectedRoute - isAuthenticated: true
+AppLayout.tsx:8 AppLayout component loaded successfully!
+AppLayout.tsx:8 AppLayout component loaded successfully!
+Dashboard.tsx:289 Uncaught TypeError: Cannot read properties of undefined (reading 'users')
+    at Dashboard (Dashboard.tsx:289:111)
+    at renderWithHooks (chunk-QT63QQJV.js?v=f77abd62:11548:26)
+    at mountIndeterminateComponent (chunk-QT63QQJV.js?v=f77abd62:14926:21)
+    at beginWork (chunk-QT63QQJV.js?v=f77abd62:15914:22)
+    at HTMLUnknownElement.callCallback2 (chunk-QT63QQJV.js?v=f77abd62:3674:22)
+    at Object.invokeGuardedCallbackDev (chunk-QT63QQJV.js?v=f77abd62:3699:24)
+    at invokeGuardedCallback (chunk-QT63QQJV.js?v=f77abd62:3733:39)
+    at beginWork$1 (chunk-QT63QQJV.js?v=f77abd62:19765:15)
+    at performUnitOfWork (chunk-QT63QQJV.js?v=f77abd62:19198:20)
+    at workLoopConcurrent (chunk-QT63QQJV.js?v=f77abd62:19189:13)
+Dashboard @ Dashboard.tsx:289
+renderWithHooks @ chunk-QT63QQJV.js?v=f77abd62:11548
+mountIndeterminateComponent @ chunk-QT63QQJV.js?v=f77abd62:14926
+beginWork @ chunk-QT63QQJV.js?v=f77abd62:15914
+callCallback2 @ chunk-QT63QQJV.js?v=f77abd62:3674
+invokeGuardedCallbackDev @ chunk-QT63QQJV.js?v=f77abd62:3699
+invokeGuardedCallback @ chunk-QT63QQJV.js?v=f77abd62:3733
+beginWork$1 @ chunk-QT63QQJV.js?v=f77abd62:19765
+performUnitOfWork @ chunk-QT63QQJV.js?v=f77abd62:19198
+workLoopConcurrent @ chunk-QT63QQJV.js?v=f77abd62:19189
+renderRootConcurrent @ chunk-QT63QQJV.js?v=f77abd62:19164
+performConcurrentWorkOnRoot @ chunk-QT63QQJV.js?v=f77abd62:18678
+workLoop @ chunk-QT63QQJV.js?v=f77abd62:197
+flushWork @ chunk-QT63QQJV.js?v=f77abd62:176
+performWorkUntilDeadline @ chunk-QT63QQJV.js?v=f77abd62:384Understand this error
+ProtectedRoute.tsx:13 ProtectedRoute - isAuthenticated: true
+ProtectedRoute.tsx:13 ProtectedRoute - isAuthenticated: true
+AppLayout.tsx:8 AppLayout component loaded successfully!
+AppLayout.tsx:8 AppLayout component loaded successfully!
+Dashboard.tsx:289 Uncaught TypeError: Cannot read properties of undefined (reading 'users')
+    at Dashboard (Dashboard.tsx:289:111)
+    at renderWithHooks (chunk-QT63QQJV.js?v=f77abd62:11548:26)
+    at mountIndeterminateComponent (chunk-QT63QQJV.js?v=f77abd62:14926:21)
+    at beginWork (chunk-QT63QQJV.js?v=f77abd62:15914:22)
+    at HTMLUnknownElement.callCallback2 (chunk-QT63QQJV.js?v=f77abd62:3674:22)
+    at Object.invokeGuardedCallbackDev (chunk-QT63QQJV.js?v=f77abd62:3699:24)
+    at invokeGuardedCallback (chunk-QT63QQJV.js?v=f77abd62:3733:39)
+    at beginWork$1 (chunk-QT63QQJV.js?v=f77abd62:19765:15)
+    at performUnitOfWork (chunk-QT63QQJV.js?v=f77abd62:19198:20)
+    at workLoopSync (chunk-QT63QQJV.js?v=f77abd62:19137:13)
+Dashboard @ Dashboard.tsx:289
+renderWithHooks @ chunk-QT63QQJV.js?v=f77abd62:11548
+mountIndeterminateComponent @ chunk-QT63QQJV.js?v=f77abd62:14926
+beginWork @ chunk-QT63QQJV.js?v=f77abd62:15914
+callCallback2 @ chunk-QT63QQJV.js?v=f77abd62:3674
+invokeGuardedCallbackDev @ chunk-QT63QQJV.js?v=f77abd62:3699
+invokeGuardedCallback @ chunk-QT63QQJV.js?v=f77abd62:3733
+beginWork$1 @ chunk-QT63QQJV.js?v=f77abd62:19765
+performUnitOfWork @ chunk-QT63QQJV.js?v=f77abd62:19198
+workLoopSync @ chunk-QT63QQJV.js?v=f77abd62:19137
+renderRootSync @ chunk-QT63QQJV.js?v=f77abd62:19116
+recoverFromConcurrentError @ chunk-QT63QQJV.js?v=f77abd62:18736
+performConcurrentWorkOnRoot @ chunk-QT63QQJV.js?v=f77abd62:18684
+workLoop @ chunk-QT63QQJV.js?v=f77abd62:197
+flushWork @ chunk-QT63QQJV.js?v=f77abd62:176
+performWorkUntilDeadline @ chunk-QT63QQJV.js?v=f77abd62:384Understand this error
+chunk-QT63QQJV.js?v=f77abd62:14032 The above error occurred in the <Dashboard> component:
 
+    at Dashboard (http://localhost:5173/Agrilend_BackOffice/src/pages/Dashboard.tsx:56:20)
+    at RenderedRoute (http://localhost:5173/Agrilend_BackOffice/node_modules/.vite/deps/react-router-dom.js?v=f77abd62:5595:26)
+    at Outlet (http://localhost:5173/Agrilend_BackOffice/node_modules/.vite/deps/react-router-dom.js?v=f77abd62:6292:26)
+    at main
+    at div
+    at div
+    at AppLayout
+    at ProtectedRoute (http://localhost:5173/Agrilend_BackOffice/src/components/ProtectedRoute.tsx?t=1759861840319:20:27)
+    at RenderedRoute (http://localhost:5173/Agrilend_BackOffice/node_modules/.vite/deps/react-router-dom.js?v=f77abd62:5595:26)
+    at Routes (http://localhost:5173/Agrilend_BackOffice/node_modules/.vite/deps/react-router-dom.js?v=f77abd62:6358:3)
+    at ErrorBoundary (http://localhost:5173/Agrilend_BackOffice/src/components/ErrorBoundary.tsx:7:5)
+    at Router (http://localhost:5173/Agrilend_BackOffice/node_modules/.vite/deps/react-router-dom.js?v=f77abd62:6301:13)
+    at BrowserRouter (http://localhost:5173/Agrilend_BackOffice/node_modules/.vite/deps/react-router-dom.js?v=f77abd62:9396:3)
+    at AppRoutes
+    at ConfirmationProvider (http://localhost:5173/Agrilend_BackOffice/src/components/ConfirmationProvider.tsx:22:40)
+    at NotificationProvider (http://localhost:5173/Agrilend_BackOffice/src/components/NotificationProvider.tsx:31:40)
+    at AuthProvider (http://localhost:5173/Agrilend_BackOffice/src/contexts/AuthContext.tsx?t=1759861840319:32:32)
+    at App
 
-{name: "", description: "", category: "", unit: "KG", imageUrl: null,…}
-active
-: 
-true
-category
-: 
-""
-createdAt
-: 
-"2025-10-07T14:09:52.064Z"
-description
-: 
-""
-imageUrl
-: 
-null
-name
-: 
-""
-unit
-: 
-"KG"
-updatedAt
-: 
-"2025-10-07T14:09:52.064Z"
-
-preview:
-{success: false, message: "Erreurs de validation",…}
-data
-: 
-{name: "la taille doit être comprise entre 2 et 100", category: "ne doit pas être vide"}
-category
-: 
-"ne doit pas être vide"
-name
-: 
-"la taille doit être comprise entre 2 et 100"
-message
-: 
-"Erreurs de validation"
-success
-: 
-false
-timestamp
-: 
-"2025-10-07T14:09:52.1911826"
+React will try to recreate this component tree from scratch using the error boundary you provided, ErrorBoundary.
+logCapturedError @ chunk-QT63QQJV.js?v=f77abd62:14032
+callback @ chunk-QT63QQJV.js?v=f77abd62:14078
+callCallback @ chunk-QT63QQJV.js?v=f77abd62:11248
+commitUpdateQueue @ chunk-QT63QQJV.js?v=f77abd62:11265
+commitLayoutEffectOnFiber @ chunk-QT63QQJV.js?v=f77abd62:17075
+commitLayoutMountEffects_complete @ chunk-QT63QQJV.js?v=f77abd62:17980
+commitLayoutEffects_begin @ chunk-QT63QQJV.js?v=f77abd62:17969
+commitLayoutEffects @ chunk-QT63QQJV.js?v=f77abd62:17920
+commitRootImpl @ chunk-QT63QQJV.js?v=f77abd62:19353
+commitRoot @ chunk-QT63QQJV.js?v=f77abd62:19277
+finishConcurrentRender @ chunk-QT63QQJV.js?v=f77abd62:18760
+performConcurrentWorkOnRoot @ chunk-QT63QQJV.js?v=f77abd62:18718
+workLoop @ chunk-QT63QQJV.js?v=f77abd62:197
+flushWork @ chunk-QT63QQJV.js?v=f77abd62:176
+performWorkUntilDeadline @ chunk-QT63QQJV.js?v=f77abd62:384Understand this error
+ErrorBoundary.tsx:23 ErrorBoundary caught an error: TypeError: Cannot read properties of undefined (reading 'users')
+    at Dashboard (Dashboard.tsx:289:111)
+    at renderWithHooks (chunk-QT63QQJV.js?v=f77abd62:11548:26)
+    at mountIndeterminateComponent (chunk-QT63QQJV.js?v=f77abd62:14926:21)
+    at beginWork (chunk-QT63QQJV.js?v=f77abd62:15914:22)
+    at beginWork$1 (chunk-QT63QQJV.js?v=f77abd62:19753:22)
+    at performUnitOfWork (chunk-QT63QQJV.js?v=f77abd62:19198:20)
+    at workLoopSync (chunk-QT63QQJV.js?v=f77abd62:19137:13)
+    at renderRootSync (chunk-QT63QQJV.js?v=f77abd62:19116:15)
+    at recoverFromConcurrentError (chunk-QT63QQJV.js?v=f77abd62:18736:28)
+    at performConcurrentWorkOnRoot (chunk-QT63QQJV.js?v=f77abd62:18684:30) {componentStack: '\n    at Dashboard (http://localhost:5173/Agrilend_…AuthContext.tsx?t=1759861840319:32:32)\n    at App'}
+componentDidCatch @ ErrorBoundary.tsx:23
+callback @ chunk-QT63QQJV.js?v=f77abd62:14084
+callCallback @ chunk-QT63QQJV.js?v=f77abd62:11248
+commitUpdateQueue @ chunk-QT63QQJV.js?v=f77abd62:11265
+commitLayoutEffectOnFiber @ chunk-QT63QQJV.js?v=f77abd62:17075
+commitLayoutMountEffects_complete @ chunk-QT63QQJV.js?v=f77abd62:17980
+commitLayoutEffects_begin @ chunk-QT63QQJV.js?v=f77abd62:17969
+commitLayoutEffects @ chunk-QT63QQJV.js?v=f77abd62:17920
+commitRootImpl @ chunk-QT63QQJV.js?v=f77abd62:19353
+commitRoot @ chunk-QT63QQJV.js?v=f77abd62:19277
+finishConcurrentRender @ chunk-QT63QQJV.js?v=f77abd62:18760
+performConcurrentWorkOnRoot @ chunk-QT63QQJV.js?v=f77abd62:18718
+workLoop @ chunk-QT63QQJV.js?v=f77abd62:197
+flushWork @ chunk-QT63QQJV.js?v=f77abd62:176
+performWorkUntilDeadline @ chunk-QT63QQJV.js?v=f77abd62:384Understand this error

@@ -11,7 +11,7 @@ import { useAuth } from "../hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 
 export default function Header() {
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const navigate = useNavigate();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -73,7 +73,7 @@ export default function Header() {
               <div className="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center">
                 <User className="h-5 w-5 text-green-600" />
               </div>
-              <span className="ml-3 text-gray-700 font-medium">Admin</span>
+              <span className="ml-3 text-gray-700 font-medium">{user?.firstName} {user?.lastName}</span>
               <ChevronDown
                 className={`ml-2 h-4 w-4 text-gray-400 transition-transform duration-200 ${
                   isDropdownOpen ? "rotate-180" : ""
@@ -86,9 +86,9 @@ export default function Header() {
               <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
                 <div className="px-4 py-2 border-b border-gray-100">
                   <p className="text-sm font-medium text-gray-900">
-                    Admin User
+                    {user?.firstName} {user?.lastName}
                   </p>
-                  <p className="text-xs text-gray-500">admin@agrilent.com</p>
+                  <p className="text-xs text-gray-500">{user?.email}</p>
                 </div>
 
                 <button

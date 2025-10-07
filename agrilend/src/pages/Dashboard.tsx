@@ -1,38 +1,36 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Users, ShoppingCart, DollarSign, Activity, Calendar, Eye, Truck, 
+import {
+  Users, ShoppingCart, DollarSign, Activity, Calendar, Eye, Truck,
   TrendingUp, TrendingDown, AlertTriangle, Clock, Zap, Shield,
   PieChart as PieChartIcon, RefreshCw, Download
 } from 'lucide-react';
-import { 
-  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, 
+import {
+  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   PieChart, Pie, Cell, AreaChart, Area, ComposedChart, Bar, Line
 } from 'recharts';
+import { getDashboardStats, DashboardStats } from '../services/statisticsService';
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const [selectedPeriod, setSelectedPeriod] = useState('month');
   const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Données dynamiques avec état
-  const [dashboardData, setDashboardData] = useState({
-    totalUsers: 1847,
-    activeUsers: 1243,
-    totalOrders: 67,
-    completedOrders: 60,
-    pendingOrders: 7,
-    hederaTransactions: 1234,
-    sequesteredAmount: 201000,
-    platformRevenue: 10100,
-    growthRates: {
-      users: 18,
-      orders: 24,
-      transactions: 31,
-      revenue: 22
-    }
+  const [dashboardData, setDashboardData] = useState<DashboardStats>({
+    totalUsers: 0,
+    totalFarmers: 0,
+    totalBuyers: 0,
+    totalProducts: 0,
+    totalOffers: 0,
+    pendingOffers: 0,
+    totalOrders: 0,
+    ordersInEscrow: 0,
+    totalRevenue: 0,
+    totalTokensMinted: 0,
   });
-
   // Données pour le graphique des commandes avec plus de détails
   const chartData = [
     { mois: 'Jan', commandes: 45, livrees: 38, revenus: 12500, sequestres: 8, annulees: 2 },
@@ -101,14 +99,6 @@ const Dashboard: React.FC = () => {
 
   const formatNumber = (num: number) => {
     return new Intl.NumberFormat('fr-FR').format(num);
-  };
-
-  const getGrowthIcon = (rate: number) => {
-    return rate >= 0 ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />;
-  };
-
-  const getGrowthColor = (rate: number) => {
-    return rate >= 0 ? 'text-green-600' : 'text-red-600';
   };
 
   // Fonction de rafraîchissement des données - optimisée
@@ -288,20 +278,16 @@ const Dashboard: React.FC = () => {
             <div className="p-3 bg-gradient-to-br from-[#1E90FF] to-[#4CAF50] rounded-xl group-hover:scale-110 transition-transform duration-300">
               <Users className="h-6 w-6 text-white" />
             </div>
-            <div className={`flex items-center text-sm font-medium ${getGrowthColor(dashboardData.growthRates.users)}`}>
-              {getGrowthIcon(dashboardData.growthRates.users)}
-              <span className="ml-1">+{dashboardData.growthRates.users}%</span>
-            </div>
           </div>
           <div>
-            <p className="text-sm font-medium text-gray-600 mb-1">Utilisateurs actifs</p>
+            <p className="text-sm font-medium text-gray-600 mb-1">Utilisateurs Totaux</p>
             <p className="text-3xl font-bold text-gray-900">{formatNumber(dashboardData.totalUsers)}</p>
-            <p className="text-xs text-gray-500 mt-1">{formatNumber(dashboardData.activeUsers)} connectés</p>
+            <p className="text-xs text-gray-500 mt-1">{formatNumber(dashboardData.totalFarmers)} Agriculteurs, {formatNumber(dashboardData.totalBuyers)} Acheteurs</p>
           </div>
           <div className="mt-3 h-2 bg-gray-200 rounded-full overflow-hidden">
             <div 
               className="h-full bg-gradient-to-r from-[#1E90FF] to-[#4CAF50] rounded-full transition-all duration-1000"
-              style={{ width: `${(dashboardData.activeUsers / dashboardData.totalUsers) * 100}%` }}
+              style={{ width: `${(dashboardData.totalFarmers / dashboardData.totalUsers) * 100}%` }}
             ></div>
           </div>
         </div>
@@ -312,20 +298,16 @@ const Dashboard: React.FC = () => {
             <div className="p-3 bg-gradient-to-br from-[#4CAF50] to-[#1E90FF] rounded-xl group-hover:scale-110 transition-transform duration-300">
               <ShoppingCart className="h-6 w-6 text-white" />
             </div>
-            <div className={`flex items-center text-sm font-medium ${getGrowthColor(dashboardData.growthRates.orders)}`}>
-              {getGrowthIcon(dashboardData.growthRates.orders)}
-              <span className="ml-1">+{dashboardData.growthRates.orders}%</span>
-            </div>
           </div>
           <div>
-            <p className="text-sm font-medium text-gray-600 mb-1">Commandes ce mois</p>
+            <p className="text-sm font-medium text-gray-600 mb-1">Commandes Totales</p>
             <p className="text-3xl font-bold text-gray-900">{dashboardData.totalOrders}</p>
-            <p className="text-xs text-gray-500 mt-1">{dashboardData.completedOrders} livrées</p>
+            <p className="text-xs text-gray-500 mt-1">{dashboardData.pendingOffers} en attente, {dashboardData.ordersInEscrow} séquestrées</p>
           </div>
           <div className="mt-3 h-2 bg-gray-200 rounded-full overflow-hidden">
             <div 
               className="h-full bg-gradient-to-r from-[#4CAF50] to-[#1E90FF] rounded-full transition-all duration-1000"
-              style={{ width: `${(dashboardData.completedOrders / dashboardData.totalOrders) * 100}%` }}
+              style={{ width: `${((dashboardData.totalOrders - dashboardData.pendingOffers - dashboardData.ordersInEscrow) / dashboardData.totalOrders) * 100}%` }}
             ></div>
           </div>
         </div>
@@ -336,15 +318,11 @@ const Dashboard: React.FC = () => {
             <div className="p-3 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl group-hover:scale-110 transition-transform duration-300">
               <Zap className="h-6 w-6 text-white" />
             </div>
-            <div className={`flex items-center text-sm font-medium ${getGrowthColor(dashboardData.growthRates.transactions)}`}>
-              {getGrowthIcon(dashboardData.growthRates.transactions)}
-              <span className="ml-1">+{dashboardData.growthRates.transactions}%</span>
-                  </div>
                 </div>
           <div>
-            <p className="text-sm font-medium text-gray-600 mb-1">Transactions Hedera</p>
-            <p className="text-3xl font-bold text-gray-900">{formatNumber(dashboardData.hederaTransactions)}</p>
-            <p className="text-xs text-gray-500 mt-1">{formatCurrency(dashboardData.sequesteredAmount)} séquestrés</p>
+            <p className="text-sm font-medium text-gray-600 mb-1">Tokens Mintés</p>
+            <p className="text-3xl font-bold text-gray-900">{formatNumber(dashboardData.totalTokensMinted)}</p>
+            <p className="text-xs text-gray-500 mt-1">{formatCurrency(dashboardData.ordersInEscrow)} séquestrés</p>
           </div>
           <div className="mt-3 flex items-center text-xs text-gray-500">
             <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
@@ -358,15 +336,11 @@ const Dashboard: React.FC = () => {
             <div className="p-3 bg-gradient-to-br from-orange-500 to-red-500 rounded-xl group-hover:scale-110 transition-transform duration-300">
               <DollarSign className="h-6 w-6 text-white" />
             </div>
-            <div className={`flex items-center text-sm font-medium ${getGrowthColor(dashboardData.growthRates.revenue)}`}>
-              {getGrowthIcon(dashboardData.growthRates.revenue)}
-              <span className="ml-1">+{dashboardData.growthRates.revenue}%</span>
-      </div>
           </div>
           <div>
             <p className="text-sm font-medium text-gray-600 mb-1">Revenus plateforme</p>
-            <p className="text-3xl font-bold text-gray-900">{formatCurrency(dashboardData.platformRevenue)}</p>
-            <p className="text-xs text-gray-500 mt-1">Commission 5%</p>
+            <p className="text-3xl font-bold text-gray-900">{formatCurrency(dashboardData.totalRevenue)}</p>
+            <p className="text-xs text-gray-500 mt-1">Total des revenus générés</p>
           </div>
           <div className="mt-3 flex items-center text-xs text-gray-500">
             <TrendingUp className="h-3 w-3 mr-1 text-green-500" />

@@ -33,22 +33,25 @@ const Login: React.FC = () => {
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     if (isLoading) return;
 
     setIsLoading(true);
 
-    // Simulation d'authentification
-    setTimeout(() => {
-      login();
-      setIsLoading(false);
+    try {
+      await login(formData);
 
-      // Rediriger vers la page d'origine ou le dashboard
+      // Rediriger après login
       const from = location.state?.from?.pathname || "/dashboard";
       navigate(from, { replace: true });
-    }, 1000);
+    } catch (err: unknown) {
+      console.error("Erreur de connexion :", err);
+      // Ici, vous pouvez afficher un message d'erreur à l'utilisateur
+      alert((err as Error).message || "Erreur de connexion");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
