@@ -1,5 +1,5 @@
 import apiClient from "./api";
-import { User, UserFormData } from "../components/UserForm"; // Assure-toi que le type User correspond bien à ton backend
+import { User, UserFormData } from "../components/UserForm";
 
 // --- TYPES DE RÉPONSE ---
 interface ApiResponse<T> {
@@ -18,6 +18,20 @@ interface PaginatedUsers {
   first: boolean;
   last: boolean;
   empty: boolean;
+}
+
+// DTO pour la mise à jour/création d'utilisateur par l'admin
+export interface UserProfileDto {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone?: string;
+  address?: string;
+  hederaAccountId?: string;
+  role: "FARMER" | "BUYER" | "ADMIN";
+  status: "ACTIVE" | "PENDING" | "INACTIVE";
+  farmerProfile?: { farmName: string; farmLocation: string }; // Simplified for DTO
+  buyerProfile?: { companyName: string }; // Simplified for DTO
 }
 
 // --- FONCTIONS POUR ADMINISTRATEURS ---
@@ -41,7 +55,7 @@ export const getAllUsers = async (): Promise<User[]> => {
 /**
  * Récupère les détails d'un utilisateur spécifique (pour les admins).
  */
-export const getUserById = async (userId: string): Promise<User> => {
+export const getUserById = async (userId: number): Promise<User> => {
   try {
     const response = await apiClient.get<ApiResponse<User>>(
       `/admin/users/${userId}`
@@ -54,10 +68,26 @@ export const getUserById = async (userId: string): Promise<User> => {
 };
 
 /**
+ * Crée un nouvel utilisateur (pour les admins).
+ */
+export const createUser = async (userData: UserProfileDto): Promise<User> => {
+  try {
+    const response = await apiClient.post<ApiResponse<User>>(
+      "/admin/users",
+      userData
+    );
+    return response.data.data;
+  } catch (error) {
+    console.error("Error creating user:", error);
+    throw error;
+  }
+};
+
+/**
  * Met à jour le profil d'un utilisateur par un administrateur.
  */
-export const updateUser = async (userId: string, userData: any): Promise<User> => {
-  const endpoint = `/admin/users/${userId}/profile`;
+export const updateUser = async (userId: number, userData: UserProfileDto): Promise<User> => {
+  const endpoint = `/admin/users/${userId}`;
   
   try {
     const response = await apiClient.put<ApiResponse<User>>(endpoint, userData);
@@ -71,11 +101,11 @@ export const updateUser = async (userId: string, userData: any): Promise<User> =
 /**
  * Active un compte utilisateur (pour les admins).
  */
-export const enableUser = async (userId: string): Promise<void> => {
+export const activateUser = async (userId: number): Promise<void> => {
   try {
-    await apiClient.post(`/admin/users/${userId}/enable`);
+    await apiClient.put(`/admin/users/${userId}/activate`);
   } catch (error) {
-    console.error(`Error enabling user ${userId}:`, error);
+    console.error(`Error activating user ${userId}:`, error);
     throw error;
   }
 };
@@ -83,11 +113,11 @@ export const enableUser = async (userId: string): Promise<void> => {
 /**
  * Désactive un compte utilisateur (pour les admins).
  */
-export const disableUser = async (userId: string): Promise<void> => {
+export const deactivateUser = async (userId: number): Promise<void> => {
   try {
-    await apiClient.post(`/admin/users/${userId}/disable`);
+    await apiClient.put(`/admin/users/${userId}/deactivate`);
   } catch (error) {
-    console.error(`Error disabling user ${userId}:`, error);
+    console.error(`Error deactivating user ${userId}:`, error);
     throw error;
   }
 };
@@ -98,7 +128,7 @@ export const disableUser = async (userId: string): Promise<void> => {
  * Met à jour le profil de l'utilisateur connecté.
  */
 export const updateMyProfile = async (
-  userData: Partial<User>
+  userData: Partial<UserProfileDto>
 ): Promise<User> => {
   try {
     const response = await apiClient.put<ApiResponse<User>>(

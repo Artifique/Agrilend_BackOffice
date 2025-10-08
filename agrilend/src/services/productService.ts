@@ -1,20 +1,16 @@
 import apiClient from "./api";
 
-export interface Product {
-  id: number;
-  name: string;
-  description: string;
-  category: string;
-  subcategory?: string;
-  unit: string;
-  imageUrl?: string | null;
-  createdAt: string;
-  updatedAt: string;
-  active: boolean;
+// Assuming a generic API response structure
+interface ApiResponse<T> {
+  success: boolean;
+  message: string;
+  data: T;
+  timestamp?: string;
 }
 
-export interface ProductPage {
-  content: Product[];
+// For paginated responses (e.g., Get all products)
+interface PageResponse<T> {
+  content: T[];
   page: number;
   size: number;
   totalElements: number;
@@ -24,115 +20,59 @@ export interface ProductPage {
   empty: boolean;
 }
 
-/**
- * Récupère la liste de tous les produits (paginée).
- */
-export const getProducts = async (
-  page = 0,
-  size = 10
-): Promise<Product[]> => {
-  try {
-    const response = await apiClient.get("/admin/products", {
-      params: { page, size },
-    });
+// For 6.1. Créer un nouveau produit (Request JSON)
+export interface ProductFormData {
+  name: string;
+  description: string;
+  category: string;
+  subcategory: string;
+  unit: string;
+  imageUrl?: string;
+}
 
-    const d = response.data;
+// For 6.1. Créer un nouveau produit (Response JSON) and 6.4. Obtenir un produit par ID
+export interface Product {
+  id: number;
+  name: string;
+  description: string;
+  category: string;
+  subcategory: string;
+  unit: string;
+  imageUrl?: string;
+  createdAt: string;
+  updatedAt: string;
+  active: boolean; // Assuming there might be an 'active' status for products, similar to users
+}
 
-    // ✅ correspond à la réponse JSON de ton backend
-    if (d && d.data && d.data.content) {
-      return d.data.content as Product[];
-    }
+const BASE_URL = "/admin/products";
 
-    // fallback
-    return [];
-  } catch (error) {
-    console.error("Error fetching products:", error);
-    throw error;
-  }
+export const getAllProducts = async (): Promise<Product[]> => {
+  const response = await apiClient.get<ApiResponse<PageResponse<Product>>>(BASE_URL);
+  return response.data.data.content;
 };
 
-/**
- * Récupère un produit par son ID.
- */
-export const getProductById = async (productId: string): Promise<Product> => {
-  try {
-    const response = await apiClient.get(`/admin/products/${productId}`);
-    const d = response.data;
-    return d.data as Product; // ✅ ton backend envoie { success, data: {...} }
-  } catch (error) {
-    console.error(`Error fetching product ${productId}:`, error);
-    throw error;
-  }
+export const getProductById = async (id: number): Promise<Product> => {
+  const response = await apiClient.get<ApiResponse<Product>>(`${BASE_URL}/${id}`);
+  return response.data.data;
 };
 
-/**
- * Crée un nouveau produit.
- */
-export const createProduct = async (productData: { name: string; description: string; category: string; subcategory?: string; unit: string; }): Promise<Product> => {
-  try {
-    const now = new Date().toISOString();
-    const fullProductData = {
-      ...productData,
-      imageUrl: productData.imageUrl || null, // Default to null if not provided
-      createdAt: now,
-      updatedAt: now,
-      active: true, // Default to active
-    };
-    const response = await apiClient.post("/admin/products", fullProductData);
-    return response.data.data as Product;
-  } catch (error) {
-    console.error("Error creating product:", error);
-    throw error;
-  }
+export const createProduct = async (productData: ProductFormData): Promise<Product> => {
+  const response = await apiClient.post<ApiResponse<Product>>(BASE_URL, productData);
+  return response.data.data;
 };
 
-/**
- * Met à jour un produit existant.
- */
-export const updateProduct = async (
-  productId: string,
-  productData: Partial<Product>
-): Promise<Product> => {
-  try {
-    const response = await apiClient.put(
-      `/admin/products/${productId}`,
-      productData
-    );
-    return response.data.data as Product; // ✅
-  } catch (error) {
-    console.error(`Error updating product ${productId}:`, error);
-    throw error;
-  }
+export const updateProduct = async (id: number, productData: ProductFormData): Promise<Product> => {
+  const response = await apiClient.put<ApiResponse<Product>>(`${BASE_URL}/${id}`, productData);
+  return response.data.data;
 };
 
-/**
- * Désactive un produit.
- */
-export const deactivateProduct = async (productId: string): Promise<void> => {
-  try {
-    await apiClient.put(`/admin/products/${productId}/deactivate`);
-  } catch (error) {
-    console.error(`Error deactivating product ${productId}:`, error);
-    throw error;
-  }
+export const deactivateProduct = async (id: number): Promise<void> => {
+  await apiClient.put<ApiResponse<void>>(`${BASE_URL}/${id}/deactivate`);
 };
 
-/**
- * Recherche des produits.
- */
-export const searchProducts = async (
-  keyword: string,
-  page = 0,
-  size = 10
-): Promise<Product[]> => {
-  try {
-    const response = await apiClient.get("/admin/products/search", {
-      params: { keyword, page, size },
-    });
-    const d = response.data;
-    return d.data?.content ?? []; // ✅
-  } catch (error) {
-    console.error("Error searching products:", error);
-    throw error;
-  }
+export const searchProducts = async (query: string): Promise<Product[]> => {
+  const response = await apiClient.get<ApiResponse<PageResponse<Product>>>(`${BASE_URL}/search`, {
+    params: { query },
+  });
+  return response.data.data.content;
 };

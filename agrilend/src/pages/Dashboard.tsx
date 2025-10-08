@@ -31,6 +31,25 @@ const Dashboard: React.FC = () => {
     totalRevenue: 0,
     totalTokensMinted: 0,
   });
+
+  const fetchDashboardData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const stats = await getDashboardStats();
+      setDashboardData(stats);
+    } catch (err) {
+      console.error("Failed to fetch dashboard stats:", err);
+      setError("Failed to load dashboard data.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, [fetchDashboardData]);
+
   // Données pour le graphique des commandes avec plus de détails
   const chartData = [
     { mois: 'Jan', commandes: 45, livrees: 38, revenus: 12500, sequestres: 8, annulees: 2 },
@@ -104,20 +123,9 @@ const Dashboard: React.FC = () => {
   // Fonction de rafraîchissement des données - optimisée
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
-    
-    // Simulation d'appel API
-    await new Promise(resolve => setTimeout(resolve, 200));
-    
-    // Mise à jour des données (simulation)
-    setDashboardData(prev => ({
-      ...prev,
-      totalUsers: prev.totalUsers + Math.floor(Math.random() * 10),
-      totalOrders: prev.totalOrders + Math.floor(Math.random() * 5),
-      hederaTransactions: prev.hederaTransactions + Math.floor(Math.random() * 20)
-    }));
-    
+    await fetchDashboardData();
     setRefreshing(false);
-  }, []);
+  }, [fetchDashboardData]);
 
   // Fonction d'export des données
   const handleExportData = () => {
@@ -343,7 +351,6 @@ const Dashboard: React.FC = () => {
             <p className="text-xs text-gray-500 mt-1">Total des revenus générés</p>
           </div>
           <div className="mt-3 flex items-center text-xs text-gray-500">
-            <TrendingUp className="h-3 w-3 mr-1 text-green-500" />
             <span>Croissance constante</span>
           </div>
         </div>

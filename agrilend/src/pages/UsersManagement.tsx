@@ -18,6 +18,7 @@ import Modal from "../components/Modal";
 import ModalForm from "../components/ModalForm";
 import UserForm, { UserFormData, User } from "../components/UserForm";
 import { initialUserForm } from "../components/userFormConstants";
+import { getAllUsers } from "../services/userService";
 const UsersManagement: React.FC = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -29,113 +30,18 @@ const UsersManagement: React.FC = () => {
   const [newUser, setNewUser] = useState<UserFormData>(initialUserForm);
   const [allUsers, setAllUsers] = useState<User[]>([]); // State to hold fetched users
 
-  // Function to simulate fetching users from an API
+  // Function to fetch users from the API
   const fetchUsers = async () => {
     setIsLoading(true);
-    // In a real application, this would be an API call
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    const fetchedUsers: User[] = [
-      {
-        id: 1,
-        firstName: "Jean",
-        lastName: "Kouassi",
-        email: "jean.kouassi@email.com",
-        phone: "+225 07 12 34 56",
-        address: "Abidjan, Côte d'Ivoire",
-        hederaAccountId: "0.0.1001",
-        createdAt: "2024-01-15",
-        status: "ACTIVE",
-        role: "FARMER",
-        isActive: true,
-        emailVerified: true,
-        ordersCount: 3,
-        totalAmount: 450.0,
-        farmerProfile: {
-          farmName: "Ferme Kouassi",
-          farmLocation: "Abidjan",
-        },
-      },
-      {
-        id: 2,
-        firstName: "Marie",
-        lastName: "Traoré",
-        email: "marie.traore@email.com",
-        phone: "+225 07 23 45 67",
-        address: "Bouaké, Côte d'Ivoire",
-        hederaAccountId: "0.0.1002",
-        createdAt: "2024-01-10",
-        status: "ACTIVE",
-        role: "BUYER",
-        isActive: true,
-        emailVerified: true,
-        ordersCount: 5,
-        totalAmount: 1200.0,
-        buyerProfile: {
-          companyName: "Agro Distribution SARL",
-        },
-      },
-      {
-        id: 3,
-        firstName: "Amadou",
-        lastName: "Diallo",
-        email: "amadou.diallo@email.com",
-        phone: "+225 07 34 56 78",
-        address: "Yamoussoukro, Côte d'Ivoire",
-        hederaAccountId: "0.0.1003",
-        createdAt: "2024-01-08",
-        status: "PENDING",
-        role: "FARMER",
-        isActive: true,
-        emailVerified: false,
-        ordersCount: 0,
-        totalAmount: 0.0,
-        farmerProfile: {
-          farmName: "Ferme Diallo",
-          farmLocation: "Yamoussoukro",
-        },
-      },
-      {
-        id: 4,
-        firstName: "Fatou",
-        lastName: "Sissoko",
-        email: "fatou.sissoko@email.com",
-        phone: "+225 07 45 67 89",
-        address: "San-Pédro, Côte d'Ivoire",
-        hederaAccountId: "0.0.1004",
-        createdAt: "2024-01-05",
-        status: "ACTIVE",
-        role: "BUYER",
-        isActive: true,
-        emailVerified: true,
-        ordersCount: 2,
-        totalAmount: 300.0,
-        buyerProfile: {
-          companyName: "Ivoire Fruits",
-        },
-      },
-      {
-        id: 5,
-        firstName: "Kouadio",
-        lastName: "N'Guessan",
-        email: "kouadio.nguessan@email.com",
-        phone: "+225 07 56 78 90",
-        address: "Grand-Bassam, Côte d'Ivoire",
-        hederaAccountId: "0.0.1005",
-        createdAt: "2024-01-03",
-        status: "INACTIVE",
-        role: "FARMER",
-        isActive: false,
-        emailVerified: true,
-        ordersCount: 1,
-        totalAmount: 150.0,
-        farmerProfile: {
-          farmName: "Ferme N'Guessan",
-          farmLocation: "Grand-Bassam",
-        },
-      },
-    ];
-    setAllUsers(fetchedUsers);
-    setIsLoading(false);
+    try {
+      const fetchedUsers = await getAllUsers();
+      setAllUsers(fetchedUsers);
+    } catch (error) {
+      console.error("Failed to fetch users:", error);
+      // Optionally, show an error notification to the user
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -204,42 +110,35 @@ const UsersManagement: React.FC = () => {
             );
           },
         }),
-        columnHelper.accessor("status", {
+        columnHelper.accessor("active", {
           header: "Statut",
           cell: (info) => {
-            const status = info.getValue();
-            const statusConfig = {
-              ACTIVE: {
-                label: "Actif",
-                color: "bg-green-100 text-green-800",
-                icon: CheckCircle,
-              },
-              PENDING: {
-                label: "En attente",
-                color: "bg-yellow-100 text-yellow-800",
-                icon: Clock,
-              },
-              INACTIVE: {
-                label: "Inactif",
-                color: "bg-red-100 text-red-800",
-                icon: XCircle,
-              },
-            };
-            const config = statusConfig[status];
-            const Icon = config.icon;
+            const isActive = info.getValue();
+            const statusConfig = isActive
+              ? {
+                  label: "Actif",
+                  color: "bg-green-100 text-green-800",
+                  icon: CheckCircle,
+                }
+              : {
+                  label: "Inactif",
+                  color: "bg-red-100 text-red-800",
+                  icon: XCircle,
+                };
+            const Icon = statusConfig.icon;
 
             return (
               <span
-                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${config.color}`}
+                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusConfig.color}`}
               >
                 <Icon className="h-3 w-3 mr-1" />
-                {config.label}
+                {statusConfig.label}
               </span>
             );
           },
         }),
         columnHelper.accessor("createdAt", {
-          header: "Date d'inscription",
+          header: "Date de création",
           cell: (info) => (
             <div className="flex items-center">
               <Calendar className="h-4 w-4 text-gray-400 mr-2" />
@@ -247,25 +146,22 @@ const UsersManagement: React.FC = () => {
             </div>
           ),
         }),
-        columnHelper.accessor("ordersCount", {
-          header: "Commandes",
+        columnHelper.accessor("updatedAt", {
+          header: "Dernière MAJ",
           cell: (info) => (
-            <div className="text-center">
-              <span className="font-medium text-gray-900">
-                {info.getValue()}
-              </span>
+            <div className="flex items-center">
+              <Calendar className="h-4 w-4 text-gray-400 mr-2" />
+              {info.getValue() ? new Date(info.getValue()!).toLocaleDateString("fr-FR") : "N/A"}
             </div>
           ),
         }),
-        columnHelper.accessor("totalAmount", {
-          header: "Montant Total",
-          cell: (info) => (
-            <div className="text-right">
-              <span className="font-medium text-green-600">
-                €{info.getValue().toFixed(2)}
-              </span>
-            </div>
-          ),
+        columnHelper.accessor("farmName", {
+          header: "Nom de la ferme",
+          cell: (info) => info.getValue() || "N/A",
+        }),
+        columnHelper.accessor("companyName", {
+          header: "Nom de l'entreprise",
+          cell: (info) => info.getValue() || "N/A",
         }),
         columnHelper.display({
           id: "actions",
@@ -339,16 +235,16 @@ const UsersManagement: React.FC = () => {
       lastName: user.lastName,
       email: user.email,
       phone: user.phone || "",
-      address: user.address || "",
+      address: user.address || "", // address n'est pas dans le JSON, mais gardé pour le formulaire
       hederaAccountId: user.hederaAccountId || "",
       role: user.role,
-      status: user.status,
-      farmerProfile: user.farmerProfile
-        ? { ...user.farmerProfile }
-        : initialUserForm.farmerProfile,
-      buyerProfile: user.buyerProfile
-        ? { ...user.buyerProfile }
-        : initialUserForm.buyerProfile,
+      status: user.active ? "ACTIVE" : "INACTIVE", // Déduire le status de 'active'
+      farmName: user.farmName || "",
+      farmLocation: user.farmLocation || "",
+      farmSize: user.farmSize || "",
+      companyName: user.companyName || "",
+      activityType: user.activityType || "",
+      companyAddress: user.companyAddress || "",
     });
     setShowEditModal(true);
   };
@@ -458,17 +354,8 @@ const UsersManagement: React.FC = () => {
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "ACTIVE":
-        return "text-green-600 bg-green-50";
-      case "PENDING":
-        return "text-yellow-600 bg-yellow-50";
-      case "INACTIVE":
-        return "text-red-600 bg-red-50";
-      default:
-        return "text-gray-600 bg-gray-50";
-    }
+  const getStatusColor = (active: boolean) => {
+    return active ? "text-green-600 bg-green-50" : "text-red-600 bg-red-50";
   };
 
   const getRoleColor = (role: string) => {
@@ -537,7 +424,7 @@ const UsersManagement: React.FC = () => {
                 Utilisateurs Actifs
               </p>
               <p className="text-2xl font-bold text-gray-900">
-                {allUsers.filter((user) => user.status === "ACTIVE").length}
+                {allUsers.filter((user) => user.active).length}
               </p>
             </div>
           </div>
@@ -549,9 +436,9 @@ const UsersManagement: React.FC = () => {
               <Clock className="h-6 w-6 text-yellow-600" />
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">En Attente</p>
+              <p className="text-sm font-medium text-gray-600">Inactifs</p>
               <p className="text-2xl font-bold text-gray-900">
-                {allUsers.filter((user) => user.status === "PENDING").length}
+                {allUsers.filter((user) => !user.active).length}
               </p>
             </div>
           </div>
@@ -565,7 +452,7 @@ const UsersManagement: React.FC = () => {
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Inactifs</p>
               <p className="text-2xl font-bold text-gray-900">
-                {allUsers.filter((user) => user.status === "INACTIVE").length}
+                {allUsers.filter((user) => !user.active).length}
               </p>
             </div>
           </div>
@@ -680,7 +567,7 @@ const UsersManagement: React.FC = () => {
                     <Calendar className="h-5 w-5 text-gray-400 mr-3" />
                     <div>
                       <p className="text-sm text-gray-500">
-                        Date d'inscription
+                        Date de création
                       </p>
                       <p className="font-medium text-gray-900">
                         {new Date(viewingUser.createdAt).toLocaleDateString(
@@ -689,6 +576,21 @@ const UsersManagement: React.FC = () => {
                       </p>
                     </div>
                   </div>
+                  {viewingUser.updatedAt && (
+                    <div className="flex items-center">
+                      <Calendar className="h-5 w-5 text-gray-400 mr-3" />
+                      <div>
+                        <p className="text-sm text-gray-500">
+                          Dernière mise à jour
+                        </p>
+                        <p className="font-medium text-gray-900">
+                          {new Date(viewingUser.updatedAt).toLocaleDateString(
+                            "fr-FR"
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                  )}
                   {viewingUser.hederaAccountId && (
                     <div className="flex items-center">
                       <Users className="h-5 w-5 text-gray-400 mr-3" />
@@ -713,12 +615,10 @@ const UsersManagement: React.FC = () => {
                   <div className="flex items-center">
                     <span
                       className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(
-                        viewingUser.status
+                        viewingUser.active
                       )}`}
                     >
-                      {viewingUser.status === "ACTIVE" && "Actif"}
-                      {viewingUser.status === "PENDING" && "En attente"}
-                      {viewingUser.status === "INACTIVE" && "Inactif"}
+                      {viewingUser.active ? "Actif" : "Inactif"}
                     </span>
                   </div>
 
@@ -734,38 +634,41 @@ const UsersManagement: React.FC = () => {
                     </span>
                   </div>
 
-                  {viewingUser.role === "FARMER" &&
-                    viewingUser.farmerProfile && (
-                      <div className="bg-gray-50 p-4 rounded-lg">
-                        <p className="text-sm text-gray-600">
-                          <strong>Nom de la ferme :</strong>{" "}
-                          {viewingUser.farmerProfile.farmName}
-                        </p>
-                        <p className="text-sm text-gray-600">
-                          <strong>Localisation de la ferme :</strong>{" "}
-                          {viewingUser.farmerProfile.farmLocation}
-                        </p>
-                      </div>
-                    )}
-
-                  {viewingUser.role === "BUYER" && viewingUser.buyerProfile && (
+                  {viewingUser.role === "FARMER" && (
                     <div className="bg-gray-50 p-4 rounded-lg">
                       <p className="text-sm text-gray-600">
-                        <strong>Nom de l'entreprise :</strong>{" "}
-                        {viewingUser.buyerProfile.companyName}
+                        <strong>Nom de la ferme :</strong>{" "}
+                        {viewingUser.farmName || "N/A"}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        <strong>Localisation de la ferme :</strong>{" "}
+                        {viewingUser.farmLocation || "N/A"}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        <strong>Taille de la ferme :</strong>{" "}
+                        {viewingUser.farmSize || "N/A"}
                       </p>
                     </div>
                   )}
 
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <p className="text-sm text-gray-600">
-                      <strong>Commandes :</strong> {viewingUser.ordersCount}
-                    </p>
-                    <p className="text-sm text-gray-600">
-                      <strong>Montant total :</strong> €
-                      {viewingUser.totalAmount.toFixed(2)}
-                    </p>
-                  </div>
+                  {viewingUser.role === "BUYER" && (
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <p className="text-sm text-gray-600">
+                        <strong>Nom de l'entreprise :</strong>{" "}
+                        {viewingUser.companyName || "N/A"}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        <strong>Type d'activité :</strong>{" "}
+                        {viewingUser.activityType || "N/A"}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        <strong>Adresse de l'entreprise :</strong>{" "}
+                        {viewingUser.companyAddress || "N/A"}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Removed ordersCount and totalAmount as they are not in the provided JSON */}
                 </div>
               </div>
             </div>

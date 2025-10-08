@@ -17,7 +17,7 @@ import UsersManagement from "./pages/UsersManagement";
 import ProductsValidation from "./pages/ProductsValidation";
 import OrdersManagement from "./pages/OrdersManagement";
 import FinancialManagement from "./pages/FinancialManagement";
-import LogisticsManagement from "./pages/LogisticsManagement";
+import ProductManagement from "./pages/ProductManagement";
 import DisputesManagement from "./pages/DisputesManagement";
 import ReportsAnalytics from "./pages/ReportsAnalytics";
 import ParametersConfig from "./pages/ParametersConfig";
@@ -49,7 +49,7 @@ const AppRoutes: React.FC = () => {
             />
             <Route path="orders" element={<OrdersManagement />} />
             <Route path="financial" element={<FinancialManagement />} />
-            <Route path="logistics" element={<LogisticsManagement />} />
+            <Route path="products" element={<ProductManagement />} />
             <Route path="disputes" element={<DisputesManagement />} />
             <Route path="reports" element={<ReportsAnalytics />} />
             <Route path="parameters" element={<ParametersConfig />} />

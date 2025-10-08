@@ -25,7 +25,7 @@ const navigation: NavigationItem[] = [
   { name: "Validation Produits", path: "/products-validation", icon: Package },
   { name: "Commandes & Offres", path: "/orders", icon: ShoppingCart },
   { name: "Gestion Financière", path: "/financial", icon: DollarSign },
-  { name: "Logistique", path: "/logistics", icon: Truck },
+  { name: "Gestion des Produits", path: "/products", icon: Package },
   { name: "Gestion Litiges", path: "/disputes", icon: AlertTriangle },
   { name: "Rapports & Stats", path: "/reports", icon: FileText },
   { name: "Paramètres", path: "/parameters", icon: Settings },
