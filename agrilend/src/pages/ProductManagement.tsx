@@ -1,1287 +1,852 @@
-import React, { useState, useMemo, useCallback, useEffect } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
-  Truck,
+  Package, // Icône pour les produits
   CheckCircle,
   XCircle,
   Clock,
-  Package,
-  User,
+  Plus,
+  Edit,
+  Trash2,
+  Loader2,
+  AlertCircle,
   Calendar,
-  Navigation,
-  Building2,
-  Phone,
-  Mail,
+  Image as ImageIcon, // Renommer pour éviter le conflit avec Image de React
 } from "lucide-react";
 import { createColumnHelper, ColumnDef } from "@tanstack/react-table";
-import { ManagementPage } from "../components/ManagementPage";
+import DataTable from "../components/DataTable";
 import Modal from "../components/Modal";
 import ModalForm from "../components/ModalForm";
 import FormField from "../components/FormField";
-import DataTable from "../components/DataTable";
-import { Delivery, LogisticsPartner } from "../types";
+import { useNotificationHelpers } from "../hooks/useNotificationHelpers";
+import { Product, getAllProducts, createProduct, updateProduct, deactivateProduct, activateProduct } from "../services/productService";
 
-// Composant spécialisé pour les actions de livraison
-interface DeliveryActionsProps {
-  delivery: Delivery;
-  onStart: (delivery: Delivery) => void;
-  onComplete: (delivery: Delivery) => void;
-  onCancel: (delivery: Delivery) => void;
-}
+const ProductManagement: React.FC = () => {
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showActivateModal, setShowActivateModal] = useState(false);
 
-const DeliveryActions: React.FC<DeliveryActionsProps> = ({
-  delivery,
-  onStart,
-  onComplete,
-  onCancel,
-}) => {
-  const getStatusColor = (status: Delivery["status"]) => {
-    switch (status) {
-      case "SCHEDULED":
-        return "bg-blue-100 text-blue-800";
-      case "IN_TRANSIT":
-        return "bg-orange-100 text-orange-800";
-      case "DELIVERED":
-        return "bg-green-100 text-green-800";
-      case "FAILED":
-        return "bg-red-100 text-red-800";
-      case "PICKED_UP":
-        return "bg-purple-100 text-purple-800";
-      default:
-        return "bg-gray-100 text-gray-800";
-    }
-  };
-
-  return (
-    <div className="space-y-4">
-      <div className="bg-gray-50 p-4 rounded-lg">
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <h3 className="font-semibold text-gray-700 mb-2">
-              Détails de la livraison
-            </h3>
-            <div className="space-y-2">
-              <div className="flex items-center">
-                <Package className="h-4 w-4 text-gray-500 mr-2" />
-                <span className="font-medium">Produit:</span>
-                <span className="ml-2">{delivery.product}</span>
-              </div>
-              <div className="flex items-center">
-                <span className="font-medium w-20">Quantité:</span>
-                <span>{delivery.quantity} kg</span>
-              </div>
-              <div className="flex items-center">
-                <span className="font-medium w-20">Statut:</span>
-                <span
-                  className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
-                    delivery.status
-                  )}`}
-                >
-                  {delivery.status.charAt(0).toUpperCase() +
-                    delivery.status.slice(1)}
-                </span>
-              </div>
-            </div>
-          </div>
-          <div>
-            <h3 className="font-semibold text-gray-700 mb-2">Informations</h3>
-            <div className="space-y-2">
-              <div className="flex items-center">
-                <User className="h-4 w-4 text-gray-500 mr-2" />
-                <span className="font-medium">Chauffeur:</span>
-                <span className="ml-2">{delivery.driver}</span>
-              </div>
-              <div className="flex items-center">
-                <Truck className="h-4 w-4 text-gray-500 mr-2" />
-                <span className="font-medium">Véhicule:</span>
-                <span className="ml-2">{delivery.vehicle}</span>
-              </div>
-              <div className="flex items-center">
-                <Calendar className="h-4 w-4 text-gray-500 mr-2" />
-                <span className="font-medium">Programmée:</span>
-                <span className="ml-2">{delivery.scheduledDate}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="flex flex-wrap gap-2">
-        {delivery.status === "SCHEDULED" && (
-          <button
-            onClick={() => onStart(delivery)}
-            className="flex items-center px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            <CheckCircle className="h-4 w-4 mr-2" />
-            Démarrer
-          </button>
-        )}
-
-        {delivery.status === "IN_TRANSIT" && (
-          <button
-            onClick={() => onComplete(delivery)}
-            className="flex items-center px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-          >
-            <CheckCircle className="h-4 w-4 mr-2" />
-            Marquer livré
-          </button>
-        )}
-
-        {delivery.status !== "DELIVERED" && delivery.status !== "FAILED" && (
-          <button
-            onClick={() => onCancel(delivery)}
-            className="flex items-center px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-          >
-            <XCircle className="h-4 w-4 mr-2" />
-            Annuler
-          </button>
-        )}
-      </div>
-    </div>
-  );
-};
-
-// Composant spécialisé pour les actions de partenaire
-interface PartnerActionsProps {
-  partner: LogisticsPartner;
-  onActivate: (partner: LogisticsPartner) => void;
-}
-
-const PartnerActions: React.FC<PartnerActionsProps> = ({
-  partner,
-  onActivate,
-}) => {
-  const getStatusColor = (status: LogisticsPartner["status"]) => {
-    switch (status) {
-      case "active":
-        return "bg-green-100 text-green-800";
-      case "inactive":
-        return "bg-gray-100 text-gray-800";
-      case "suspended":
-        return "bg-red-100 text-red-800";
-      default:
-        return "bg-gray-100 text-gray-800";
-    }
-  };
-
-  return (
-    <div className="space-y-4">
-      <div className="bg-gray-50 p-4 rounded-lg">
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <h3 className="font-semibold text-gray-700 mb-2">
-              Informations de l'entreprise
-            </h3>
-            <div className="space-y-2">
-              <div className="flex items-center">
-                <Building2 className="h-4 w-4 text-gray-500 mr-2" />
-                <span className="font-medium">Nom:</span>
-                <span className="ml-2">{partner.name}</span>
-              </div>
-              <div className="flex items-center">
-                <User className="h-4 w-4 text-gray-500 mr-2" />
-                <span className="font-medium">Contact:</span>
-                <span className="ml-2">{partner.contactPerson}</span>
-              </div>
-              <div className="flex items-center">
-                <span className="font-medium w-20">Statut:</span>
-                <span
-                  className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
-                    partner.status
-                  )}`}
-                >
-                  {partner.status.charAt(0).toUpperCase() +
-                    partner.status.slice(1)}
-                </span>
-              </div>
-            </div>
-          </div>
-          <div>
-            <h3 className="font-semibold text-gray-700 mb-2">Contact</h3>
-            <div className="space-y-2">
-              <div className="flex items-center">
-                <Phone className="h-4 w-4 text-gray-500 mr-2" />
-                <span className="font-medium">Téléphone:</span>
-                <span className="ml-2">{partner.phone}</span>
-              </div>
-              <div className="flex items-center">
-                <Mail className="h-4 w-4 text-gray-500 mr-2" />
-                <span className="font-medium">Email:</span>
-                <span className="ml-2">{partner.email}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="flex flex-wrap gap-2">
-        <button
-          onClick={() => onActivate(partner)}
-          className="flex items-center px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-        >
-          <CheckCircle className="h-4 w-4 mr-2" />
-          Activer
-        </button>
-      </div>
-    </div>
-  );
-};
-
-// Configuration pour la page de gestion logistique optimisée
-const LogisticsManagementOptimized: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<"deliveries" | "partners">(
-    "deliveries"
-  );
-
-  // États pour les modals de livraison
-  const [showStartModal, setShowStartModal] = useState(false);
-  const [showCompleteModal, setShowCompleteModal] = useState(false);
-  const [showCancelModal, setShowCancelModal] = useState(false);
-  const [selectedDelivery, setSelectedDelivery] = useState<Delivery | null>(
-    null
-  );
-
-  // États pour les modals de partenaire
-  const [showPartnerModal, setShowPartnerModal] = useState(false);
-  const [selectedPartner, setSelectedPartner] =
-    useState<LogisticsPartner | null>(null);
+  const [viewingProduct, setViewingProduct] = useState<Product | null>(null);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [deletingProduct, setDeletingProduct] = useState<Product | null>(null);
+  const [activatingProduct, setActivatingProduct] = useState<Product | null>(null);
 
   const [isLoading, setIsLoading] = useState(false);
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
 
-  const [deliveries, setDeliveries] = useState<Delivery[]>([]); // State to hold fetched deliveries
-  const [partners, setPartners] = useState<LogisticsPartner[]>([]); // State to hold fetched partners
+  const { showSuccess, showError } = useNotificationHelpers();
 
-  // Function to simulate fetching deliveries from an API
-  const fetchDeliveries = async () => {
+  // État pour le nouveau produit/produit édité
+  const [newProduct, setNewProduct] = useState<Product>({ // Initialisation avec des valeurs par défaut
+    id: 0,
+    name: "",
+    description: "",
+    category: "",
+    subcategory: "",
+    unit: "",
+    imageUrl: null,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    active: true,
+  });
+
+  // Fonctions pour fermer les modales
+  const handleCloseViewModal = () => setShowViewModal(false);
+  const handleCloseEditModal = () => setShowEditModal(false);
+  const handleCloseDeleteModal = () => setShowDeleteModal(false);
+  const handleCloseActivateModal = () => setShowActivateModal(false);
+
+  // Fonction pour récupérer les produits
+  const fetchProducts = async () => {
     setIsLoading(true);
-    // In a real application, this would be an API call
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    const fetchedDeliveries: Delivery[] = [
-      {
-        id: 1,
-        orderId: 1001,
-        product: "Tomates",
-        farmer: "Jean Kouassi",
-        buyer: "Restaurant Le Gourmet",
-        quantity: 50,
-        pickupLocation: "Ferme Kouassi, Abidjan",
-        deliveryLocation: "Restaurant Le Gourmet, Plateau",
-        scheduledDate: "2024-09-22",
-        driver: "Moussa Traoré",
-        vehicle: "Camion réfrigéré #TR001",
-        status: "SCHEDULED",
-        estimatedDuration: 2,
-        distance: 15,
-        cost: 25000,
-        notes: "Livraison urgente",
-        trackingId: "LIV001",
-        createdAt: "2024-09-20",
-      },
-      {
-        id: 2,
-        orderId: 1002,
-        product: "Mangues",
-        farmer: "Fatou Keita",
-        buyer: "Supermarché Fraîcheur",
-        quantity: 100,
-        pickupLocation: "Plantation Keita, Bouaké",
-        deliveryLocation: "Supermarché Fraîcheur, Cocody",
-        scheduledDate: "2024-09-23",
-        driver: "Ibrahim Diabaté",
-        vehicle: "Camion #TR002",
-        status: "IN_TRANSIT",
-        estimatedDuration: 3,
-        distance: 25,
-        cost: 40000,
-        notes: "Produits fragiles",
-        trackingId: "LIV002",
-        createdAt: "2024-09-21",
-      },
-    ];
-    setDeliveries(fetchedDeliveries);
-    setIsLoading(false);
-  };
-
-  // Function to simulate fetching logistics partners from an API
-  const fetchPartners = async () => {
-    setIsLoading(true);
-    // In a real application, this would be an API call
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    const fetchedPartners: LogisticsPartner[] = [
-      {
-        id: 1,
-        name: "Transport Express CI",
-        contactPerson: "Yves Kouamé",
-        phone: "+225 07 11 22 33",
-        email: "contact@transportexpress.ci",
-        address: "Zone Industrielle, Abidjan",
-        services: ["transport", "cold-storage"],
-        status: "active",
-        rating: 4.5,
-        completedDeliveries: 150,
-        coverageAreas: ["Abidjan", "Bouaké", "Yamoussoukro"],
-        vehicles: 12,
-        certifications: ["ISO 9001", "HACCP"],
-      },
-      {
-        id: 2,
-        name: "Logistique Premium",
-        contactPerson: "Aminata Diallo",
-        phone: "+225 05 44 55 66",
-        email: "info@logistiquepremium.com",
-        address: "Port d'Abidjan",
-        services: ["warehouse", "packaging"],
-        status: "active",
-        rating: 4.8,
-        completedDeliveries: 200,
-        coverageAreas: ["Abidjan", "San-Pédro"],
-        vehicles: 20,
-        certifications: ["ISO 14001"],
-      },
-    ];
-    setPartners(fetchedPartners);
-    setIsLoading(false);
+    try {
+      const fetchedProducts = await getAllProducts();
+      setAllProducts(fetchedProducts);
+    } catch (error) {
+      console.error("Error fetching products:", error);
+      showError("Erreur de chargement", "Impossible de charger la liste des produits.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   useEffect(() => {
-    fetchDeliveries();
-    fetchPartners();
-  }, []); // Fetch data on component mount
-
-  // Handlers pour les actions de livraison
-  const handleStart = useCallback((delivery: Delivery) => {
-    setSelectedDelivery(delivery);
-    setShowStartModal(true);
+    fetchProducts();
   }, []);
 
-  const handleComplete = useCallback((delivery: Delivery) => {
-    setSelectedDelivery(delivery);
-    setShowCompleteModal(true);
-  }, []);
+  const columnHelper = createColumnHelper<Product>();
 
-  const handleCancel = useCallback((delivery: Delivery) => {
-    setSelectedDelivery(delivery);
-    setShowCancelModal(true);
-  }, []);
+  const columns = useMemo(
+    () =>
+      [
+        columnHelper.accessor("id", {
+          header: "ID",
+          cell: (info) => info.getValue(),
+        }),
+        columnHelper.accessor("name", {
+          header: "Nom du Produit",
+          cell: (info) => (
+            <div className="font-medium text-gray-900">{info.getValue()}</div>
+          ),
+        }),
+        columnHelper.accessor("category", {
+          header: "Catégorie",
+          cell: (info) => info.getValue(),
+        }),
+        columnHelper.accessor("subcategory", {
+          header: "Sous-catégorie",
+          cell: (info) => info.getValue(),
+        }),
+        columnHelper.accessor("unit", {
+          header: "Unité",
+          cell: (info) => info.getValue(),
+        }),
+        columnHelper.accessor("active", {
+          header: "Statut",
+          cell: (info) => {
+            const isActive = info.getValue();
+            const statusConfig = isActive
+              ? {
+                  label: "Actif",
+                  color: "bg-green-100 text-green-800",
+                  icon: CheckCircle,
+                }
+              : {
+                  label: "Inactif",
+                  color: "bg-red-100 text-red-800",
+                  icon: XCircle,
+                };
+            const Icon = statusConfig.icon;
 
-  // Handlers pour les actions de partenaire
-  const handlePartnerView = useCallback((partner: LogisticsPartner) => {
-    setSelectedPartner(partner);
-    setShowPartnerModal(true);
-  }, []);
-
-  const handlePartnerActivate = useCallback((partner: LogisticsPartner) => {
-    setSelectedPartner(partner);
-    setShowPartnerModal(true);
-  }, []);
-
-  // Configuration des colonnes pour les livraisons
-  const deliveryColumns = useMemo(() => {
-    return [
-      {
-        accessorKey: "orderId",
-        header: "Commande",
-        cell: ({ row }: { row: { original: Delivery } }) => (
-          <div className="flex items-center">
-            <Package className="h-5 w-5 text-gray-500 mr-2" />
-            <div>
-              <div className="font-medium">#{row.original.orderId}</div>
-              <div className="text-sm text-gray-500">
-                {row.original.product}
-              </div>
+            return (
+              <span
+                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusConfig.color}`}
+              >
+                <Icon className="h-3 w-3 mr-1" />
+                {statusConfig.label}
+              </span>
+            );
+          },
+        }),
+        columnHelper.accessor("createdAt", {
+          header: "Date de Création",
+          cell: (info) => (
+            <div className="flex items-center">
+              <Calendar className="h-4 w-4 text-gray-400 mr-2" />
+              {new Date(info.getValue()).toLocaleDateString("fr-FR")}
             </div>
-          </div>
-        ),
-        enableSorting: true,
-      },
-      {
-        accessorKey: "farmer",
-        header: "Agriculteur",
-        cell: ({ row }: { row: { original: Delivery } }) => (
-          <div className="flex items-center">
-            <User className="h-4 w-4 text-gray-500 mr-2" />
-            {row.original.farmer}
-          </div>
-        ),
-        enableSorting: true,
-      },
-      {
-        accessorKey: "buyer",
-        header: "Acheteur",
-        cell: ({ row }: { row: { original: Delivery } }) => (
-          <div className="flex items-center">
-            <User className="h-4 w-4 text-gray-500 mr-2" />
-            {row.original.buyer}
-          </div>
-        ),
-        enableSorting: true,
-      },
-      {
-        accessorKey: "driver",
-        header: "Chauffeur",
-        cell: ({ row }: { row: { original: Delivery } }) => (
-          <div className="flex items-center">
-            <User className="h-4 w-4 text-gray-500 mr-2" />
-            {row.original.driver}
-          </div>
-        ),
-        enableSorting: true,
-      },
-      {
-        accessorKey: "status",
-        header: "Statut",
-        cell: ({ row }: { row: { original: Delivery } }) => {
-          const status = row.original.status;
-          const colors = {
-            SCHEDULED: "bg-blue-100 text-blue-800",
-            PICKED_UP: "bg-purple-100 text-purple-800",
-            IN_TRANSIT: "bg-orange-100 text-orange-800",
-            DELIVERED: "bg-green-100 text-green-800",
-            FAILED: "bg-red-100 text-red-800",
-          };
-          return (
-            <span
-              className={`px-2 py-1 rounded-full text-xs font-medium ${
-                colors[status as keyof typeof colors]
-              }`}
-            >
-              {status.charAt(0).toUpperCase() + status.slice(1)}
-            </span>
-          );
-        },
-        enableSorting: true,
-        enableColumnFilter: true,
-      },
-      {
-        accessorKey: "scheduledDate",
-        header: "Date prévue",
-        cell: ({ row }: { row: { original: Delivery } }) => (
-          <div className="flex items-center">
-            <Calendar className="h-4 w-4 text-gray-500 mr-2" />
-            {row.original.scheduledDate}
-          </div>
-        ),
-        enableSorting: true,
-      },
-      {
-        id: "actions",
-        header: "Actions",
-        cell: ({ row }: { row: { original: Delivery } }) => (
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={() => handleStart(row.original)}
-              className="flex items-center px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              <CheckCircle className="h-5 w-5" />
-            </button>
-            <button
-              onClick={() => handleComplete(row.original)}
-              className="flex items-center px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-            >
-              <Package className="h-5 w-5" />
-            </button>
-          </div>
-        ),
-      },
-    ];
-  }, [handleStart, handleComplete]);
-
-  // Configuration des colonnes pour les partenaires
-  const partnerColumns = useMemo(() => {
-    const columnHelper = createColumnHelper<LogisticsPartner>();
-    return [
-      columnHelper.accessor("name", {
-        header: "Nom",
-        cell: (info) => (
-          <div className="flex items-center">
-            <Building2 className="h-5 w-5 text-gray-500 mr-2" />
-            <div>
-              <div className="font-medium">{info.getValue()}</div>
-              <div className="text-sm text-gray-500">
-                {info.row.original.contactPerson}
-              </div>
+          ),
+        }),
+        columnHelper.accessor("updatedAt", {
+          header: "Dernière MAJ",
+          cell: (info) => (
+            <div className="flex items-center">
+              <Calendar className="h-4 w-4 text-gray-400 mr-2" />
+              {info.getValue() ? new Date(info.getValue()!).toLocaleDateString("fr-FR") : "N/A"}
             </div>
-          </div>
-        ),
-        enableSorting: true,
-      }),
-      columnHelper.accessor("services", {
-        header: "Services",
-        cell: (info) => {
-          const services = info.getValue();
-          const serviceColors = {
-            transport: "bg-blue-100 text-blue-800",
-            warehouse: "bg-green-100 text-green-800",
-            "cold-storage": "bg-purple-100 text-purple-800",
-            packaging: "bg-yellow-100 text-yellow-800",
-          };
-          return (
-            <div className="flex flex-wrap gap-1">
-              {services.map((service: string, index: number) => (
-                <span
-                  key={index}
-                  className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    serviceColors[service as keyof typeof serviceColors] ||
-                    "bg-gray-100 text-gray-800"
-                  }`}
+          ),
+        }),
+        columnHelper.display({
+          id: "actions",
+          header: "Actions",
+          cell: ({ row }) => (
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => handleView(row.original)}
+                className="text-blue-600 hover:text-blue-800 transition-colors duration-200"
+                title="Voir les détails"
+              >
+                <Package className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => handleEdit(row.original)}
+                className="text-green-600 hover:text-green-800 transition-colors duration-200"
+                title="Modifier"
+              >
+                <Edit className="h-4 w-4" />
+              </button>
+              {!row.original.active && ( // Afficher le bouton Activer si le produit est inactif
+                <button
+                  onClick={() => handleActivate(row.original)}
+                  className="text-purple-600 hover:text-purple-800 transition-colors duration-200"
+                  title="Activer"
                 >
-                  {service}
-                </span>
-              ))}
+                  <CheckCircle className="h-4 w-4" />
+                </button>
+              )}
+              {row.original.active && ( // Afficher le bouton Désactiver si le produit est actif
+                <button
+                  onClick={() => handleDelete(row.original)}
+                  className="text-red-600 hover:text-red-800 transition-colors duration-200"
+                  title="Désactiver"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              )}
             </div>
-          );
-        },
-        enableSorting: false,
-      }),
-      columnHelper.accessor("status", {
-        header: "Statut",
-        cell: (info) => {
-          const status = info.getValue();
-          const colors = {
-            active: "bg-green-100 text-green-800",
-            inactive: "bg-gray-100 text-gray-800",
-            suspended: "bg-red-100 text-red-800",
-          };
-          return (
-            <span
-              className={`px-2 py-1 rounded-full text-xs font-medium ${
-                colors[status as keyof typeof colors]
-              }`}
-            >
-              {status.charAt(0).toUpperCase() + status.slice(1)}
-            </span>
-          );
-        },
-        enableSorting: true,
-        enableColumnFilter: true,
-      }),
-      columnHelper.accessor("rating", {
-        header: "Note",
-        cell: (info) => (
-          <div className="flex items-center">
-            <span className="font-medium">{info.getValue()}</span>
-            <span className="text-yellow-400 ml-1">★</span>
-          </div>
-        ),
-        enableSorting: true,
-      }),
-      columnHelper.accessor("completedDeliveries", {
-        header: "Livraisons",
-        cell: (info) => info.getValue(),
-        enableSorting: true,
-      }),
-      columnHelper.display({
-        id: "actions",
-        header: "Actions",
-        cell: ({ row }) => (
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={() => handlePartnerView(row.original)}
-              className="text-blue-600 hover:text-blue-900 transition-colors"
-              title="Voir les détails"
-            >
-              <User className="h-5 w-5" />
-            </button>
-            <button
-              onClick={() => handlePartnerActivate(row.original)}
-              className="text-green-600 hover:text-green-900 transition-colors"
-              title="Activer le partenaire"
-            >
-              <CheckCircle className="h-5 w-5" />
-            </button>
-          </div>
-        ),
-      }),
-    ];
-  }, [handlePartnerView, handlePartnerActivate]);
-
-  // Configuration des champs du formulaire pour les livraisons
-  const deliveryFormFields = useMemo(
-    () => [
-      {
-        name: "orderId",
-        label: "ID Commande",
-        type: "number" as const,
-        placeholder: "123",
-        required: true,
-        min: 1,
-      },
-      {
-        name: "product",
-        label: "Produit",
-        type: "text" as const,
-        placeholder: "Tomates",
-        required: true,
-      },
-      {
-        name: "farmer",
-        label: "Agriculteur",
-        type: "text" as const,
-        placeholder: "Jean Kouassi",
-        required: true,
-      },
-      {
-        name: "buyer",
-        label: "Acheteur",
-        type: "text" as const,
-        placeholder: "Restaurant Le Gourmet",
-        required: true,
-      },
-      {
-        name: "quantity",
-        label: "Quantité (kg)",
-        type: "number" as const,
-        placeholder: "50",
-        required: true,
-        min: 1,
-      },
-      {
-        name: "pickupLocation",
-        label: "Lieu de ramassage",
-        type: "text" as const,
-        placeholder: "Ferme Kouassi, Abidjan",
-        required: true,
-      },
-      {
-        name: "deliveryLocation",
-        label: "Lieu de livraison",
-        type: "text" as const,
-        placeholder: "Restaurant Le Gourmet, Plateau",
-        required: true,
-      },
-      {
-        name: "scheduledDate",
-        label: "Date prévue",
-        type: "date" as const,
-        required: true,
-      },
-      {
-        name: "driver",
-        label: "Chauffeur",
-        type: "text" as const,
-        placeholder: "Moussa Traoré",
-        required: true,
-      },
-      {
-        name: "vehicle",
-        label: "Véhicule",
-        type: "text" as const,
-        placeholder: "Camion réfrigéré #TR001",
-        required: true,
-      },
-      {
-        name: "estimatedDuration",
-        label: "Durée estimée (heures)",
-        type: "number" as const,
-        placeholder: "2",
-        required: true,
-        min: 1,
-      },
-      {
-        name: "distance",
-        label: "Distance (km)",
-        type: "number" as const,
-        placeholder: "15",
-        required: true,
-        min: 1,
-      },
-      {
-        name: "cost",
-        label: "Coût (FCFA)",
-        type: "number" as const,
-        placeholder: "25000",
-        required: true,
-        min: 1,
-      },
-      {
-        name: "notes",
-        label: "Notes",
-        type: "textarea" as const,
-        placeholder: "Notes sur la livraison...",
-        rows: 3,
-      },
-    ],
-    []
+          ),
+        }),
+      ] as ColumnDef<Product, unknown>[],
+    [columnHelper]
   );
 
-  // Configuration des champs de visualisation pour les livraisons
-  const deliveryViewFields = useMemo(
-    () => [
-      { key: "orderId", label: "ID Commande" },
-      { key: "product", label: "Produit" },
-      { key: "farmer", label: "Agriculteur" },
-      { key: "buyer", label: "Acheteur" },
-      { key: "quantity", label: "Quantité" },
-      { key: "pickupLocation", label: "Lieu de ramassage" },
-      { key: "deliveryLocation", label: "Lieu de livraison" },
-      { key: "scheduledDate", label: "Date prévue" },
-      { key: "driver", label: "Chauffeur" },
-      { key: "vehicle", label: "Véhicule" },
-      { key: "status", label: "Statut" },
-      { key: "estimatedDuration", label: "Durée estimée" },
-      { key: "distance", label: "Distance" },
-      { key: "cost", label: "Coût" },
-      { key: "notes", label: "Notes" },
-      { key: "createdAt", label: "Date de création" },
-      { key: "deliveredAt", label: "Date de livraison" },
-      { key: "trackingId", label: "ID de suivi" },
-    ],
-    []
-  );
+  const handleInputChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >
+  ) => {
+    const { name, value } = e.target;
+    setNewProduct((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
 
-  // Configuration par défaut du formulaire pour les livraisons
-  const defaultDeliveryFormData = useMemo(
-    () => ({
-      orderId: 0,
-      product: "",
-      farmer: "",
-      buyer: "",
-      quantity: 0,
-      pickupLocation: "",
-      deliveryLocation: "",
-      scheduledDate: "",
-      driver: "",
-      vehicle: "",
-      estimatedDuration: 0,
-      distance: 0,
-      cost: 0,
-      notes: "",
-      status: "SCHEDULED" as const,
-      createdAt: new Date().toISOString().split("T")[0],
-    }),
-    []
-  );
+  const handleView = (product: Product) => {
+    setViewingProduct(product);
+    setShowViewModal(true);
+  };
 
-  // Règles de validation pour les livraisons
-  const deliveryValidationRules = useMemo(
-    () => ({
-      orderId: (value: unknown) => {
-        const num = Number(value);
-        if (!num || num < 1)
-          return "L'ID de commande doit être un nombre positif";
-        return null;
-      },
-      product: (value: unknown) => {
-        const str = String(value);
-        if (!str.trim()) return "Le produit est requis";
-        if (str.length < 2)
-          return "Le produit doit contenir au moins 2 caractères";
-        return null;
-      },
-      farmer: (value: unknown) => {
-        const str = String(value);
-        if (!str.trim()) return "L'agriculteur est requis";
-        if (str.length < 2)
-          return "L'agriculteur doit contenir au moins 2 caractères";
-        return null;
-      },
-      buyer: (value: unknown) => {
-        const str = String(value);
-        if (!str.trim()) return "L'acheteur est requis";
-        if (str.length < 2)
-          return "L'acheteur doit contenir au moins 2 caractères";
-        return null;
-      },
-      quantity: (value: unknown) => {
-        const num = Number(value);
-        if (!num || num < 1) return "La quantité doit être un nombre positif";
-        return null;
-      },
-      pickupLocation: (value: unknown) => {
-        const str = String(value);
-        if (!str.trim()) return "Le lieu de ramassage est requis";
-        if (str.length < 3)
-          return "Le lieu de ramassage doit contenir au moins 3 caractères";
-        return null;
-      },
-      deliveryLocation: (value: unknown) => {
-        const str = String(value);
-        if (!str.trim()) return "Le lieu de livraison est requis";
-        if (str.length < 3)
-          return "Le lieu de livraison doit contenir au moins 3 caractères";
-        return null;
-      },
-      scheduledDate: (value: unknown) => {
-        if (!value) return "La date prévue est requise";
-        return null;
-      },
-      driver: (value: unknown) => {
-        const str = String(value);
-        if (!str.trim()) return "Le chauffeur est requis";
-        if (str.length < 2)
-          return "Le chauffeur doit contenir au moins 2 caractères";
-        return null;
-      },
-      vehicle: (value: unknown) => {
-        const str = String(value);
-        if (!str.trim()) return "Le véhicule est requis";
-        if (str.length < 2)
-          return "Le véhicule doit contenir au moins 2 caractères";
-        return null;
-      },
-      estimatedDuration: (value: unknown) => {
-        const num = Number(value);
-        if (!num || num < 1)
-          return "La durée estimée doit être un nombre positif";
-        return null;
-      },
-      distance: (value: unknown) => {
-        const num = Number(value);
-        if (!num || num < 1) return "La distance doit être un nombre positif";
-        return null;
-      },
-      cost: (value: unknown) => {
-        const num = Number(value);
-        if (!num || num < 1) return "Le coût doit être un nombre positif";
-        return null;
-      },
-    }),
-    []
-  );
+  const handleEdit = (product: Product) => {
+    setEditingProduct(product);
+    setNewProduct({
+      ...product,
+    });
+    setShowEditModal(true);
+  };
 
-  // Statistiques pour les livraisons
-  const deliveryStats = useMemo(
-    () => [
-      {
-        label: "Total Livraisons",
-        value: deliveries.length,
-        icon: Truck,
-        color: "text-blue-600",
-        bgColor: "bg-blue-100",
-      },
-      {
-        label: "Programmées",
-        value: deliveries.filter((d) => d.status === "SCHEDULED").length,
-        icon: Clock,
-        color: "text-yellow-600",
-        bgColor: "bg-yellow-100",
-      },
-      {
-        label: "En Transit",
-        value: deliveries.filter((d) => d.status === "IN_TRANSIT").length,
-        icon: Navigation,
-        color: "text-orange-600",
-        bgColor: "bg-orange-100",
-      },
-      {
-        label: "Livrées",
-        value: deliveries.filter((d) => d.status === "DELIVERED").length,
-        icon: CheckCircle,
-        color: "text-green-600",
-        bgColor: "bg-green-100",
-      },
-    ],
-    [deliveries]
-  );
+  const handleDelete = (product: Product) => {
+    setDeletingProduct(product);
+    setShowDeleteModal(true);
+  };
 
-  // Statistiques pour les partenaires
-  const partnerStats = useMemo(
-    () => [
-      {
-        label: "Total Partenaires",
-        value: partners.length,
-        icon: Building2,
-        color: "text-blue-600",
-        bgColor: "bg-blue-100",
-      },
-      {
-        label: "Actifs",
-        value: partners.filter((p) => p.status === "active").length,
-        icon: CheckCircle,
-        color: "text-green-600",
-        bgColor: "bg-green-100",
-      },
-      {
-        label: "Inactifs",
-        value: partners.filter((p) => p.status === "inactive").length,
-        icon: Clock,
-        color: "text-gray-600",
-        bgColor: "bg-gray-100",
-      },
-      {
-        label: "Suspendus",
-        value: partners.filter((p) => p.status === "suspended").length,
-        icon: XCircle,
-        color: "text-red-600",
-        bgColor: "bg-red-100",
-      },
-    ],
-    [partners]
-  );
+  const handleActivate = (product: Product) => {
+    setActivatingProduct(product);
+    setShowActivateModal(true);
+  };
 
-  // Handlers pour les soumissions de formulaires
-  const handleStartSubmit = async (e: React.FormEvent) => {
+  const handleAddProduct = () => {
+    setNewProduct({
+      id: 0,
+      name: "",
+      description: "",
+      category: "",
+      subcategory: "",
+      unit: "",
+      imageUrl: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      active: true,
+    });
+    setShowAddModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setShowAddModal(false);
+    setNewProduct({
+      id: 0,
+      name: "",
+      description: "",
+      category: "",
+      subcategory: "",
+      unit: "",
+      imageUrl: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      active: true,
+    });
+  };
+
+  // TODO: Implémenter handleSubmitAddProduct, handleSubmitEditProduct, handleSubmitDeleteProduct, handleSubmitActivateProduct
+  const handleSubmitAddProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     try {
-      // TODO: Replace with actual API call to start delivery
-      // Example: await fetch(`/api/deliveries/${selectedDelivery?.id}/start`, {
-      //   method: 'PUT',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ startComment: e.target.startComment.value }),
-      // });
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      console.log("Starting delivery:", selectedDelivery);
-      alert("Livraison démarrée avec succès !");
-      setShowStartModal(false);
-      setSelectedDelivery(null);
-      fetchDeliveries(); // Refresh deliveries list
+      const productData = {
+        name: newProduct.name,
+        description: newProduct.description,
+        category: newProduct.category,
+        subcategory: newProduct.subcategory,
+        unit: newProduct.unit,
+        imageUrl: newProduct.imageUrl || undefined,
+      };
+      await createProduct(productData);
+      showSuccess("Succès", "Produit ajouté avec succès !");
+      handleCloseModal();
+      fetchProducts();
     } catch (error) {
-      console.error("Error starting delivery:", error);
-      alert("Erreur lors du démarrage de la livraison.");
+      console.error("Error adding product:", error);
+      showError("Erreur", "Erreur lors de l'ajout du produit.");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleCompleteSubmit = async (e: React.FormEvent) => {
+  const handleSubmitEditProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     try {
-      // TODO: Replace with actual API call to complete delivery
-      // Example: await fetch(`/api/deliveries/${selectedDelivery?.id}/complete`, {
-      //   method: 'PUT',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ deliveryComment: e.target.deliveryComment.value, deliveryTime: e.target.deliveryTime.value }),
-      // });
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      console.log("Completing delivery:", selectedDelivery);
-      alert("Livraison marquée comme livrée avec succès !");
-      setShowCompleteModal(false);
-      setSelectedDelivery(null);
-      fetchDeliveries(); // Refresh deliveries list
+      if (!editingProduct) {
+        showError("Erreur", "Aucun produit sélectionné pour la modification.");
+        return;
+      }
+      const productData = {
+        name: newProduct.name,
+        description: newProduct.description,
+        category: newProduct.category,
+        subcategory: newProduct.subcategory,
+        unit: newProduct.unit,
+        imageUrl: newProduct.imageUrl || null,
+        active: newProduct.active, // Utiliser le statut actif du formulaire
+      };
+      await updateProduct(editingProduct.id, productData);
+      showSuccess("Succès", "Produit modifié avec succès !");
+      handleCloseEditModal();
+      fetchProducts();
     } catch (error) {
-      console.error("Error completing delivery:", error);
-      alert("Erreur lors de la finalisation de la livraison.");
+      console.error("Error editing product:", error);
+      showError("Erreur", "Erreur lors de la modification du produit.");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleCancelSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmitDeleteProduct = async () => {
     setIsLoading(true);
     try {
-      // TODO: Replace with actual API call to cancel delivery
-      // Example: await fetch(`/api/deliveries/${selectedDelivery?.id}/cancel`, {
-      //   method: 'PUT',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ cancellationReason: e.target.cancellationReason.value, cancellationComment: e.target.cancellationComment.value }),
-      // });
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      console.log("Cancelling delivery:", selectedDelivery);
-      alert("Livraison annulée avec succès !");
-      setShowCancelModal(false);
-      setSelectedDelivery(null);
-      fetchDeliveries(); // Refresh deliveries list
+      if (!deletingProduct) {
+        showError("Erreur", "Aucun produit sélectionné pour la désactivation.");
+        return;
+      }
+      await deactivateProduct(deletingProduct.id);
+      showSuccess("Succès", "Produit désactivé avec succès !");
+      handleCloseDeleteModal();
+      fetchProducts();
     } catch (error) {
-      console.error("Error cancelling delivery:", error);
-      alert("Erreur lors de l'annulation de la livraison.");
+      console.error("Error deactivating product:", error);
+      showError("Erreur", "Erreur lors de la désactivation du produit.");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handlePartnerSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmitActivateProduct = async () => {
     setIsLoading(true);
     try {
-      // TODO: Replace with actual API call for partner action (e.g., activate, update)
-      // Example: await fetch(`/api/logistics-partners/${selectedPartner?.id}/activate`, {
-      //   method: 'PUT',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ partnerComment: e.target.partnerComment.value }),
-      // });
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      console.log("Partner action:", selectedPartner);
-      alert("Action partenaire effectuée avec succès !");
-      setShowPartnerModal(false);
-      setSelectedPartner(null);
-      fetchPartners(); // Refresh partners list
+      if (!activatingProduct) {
+        showError("Erreur", "Aucun produit sélectionné pour l'activation.");
+        return;
+      }
+      await activateProduct(activatingProduct.id);
+      showSuccess("Succès", "Produit activé avec succès !");
+      handleCloseActivateModal();
+      fetchProducts();
     } catch (error) {
-      console.error("Error performing partner action:", error);
-      alert("Erreur lors de l'action partenaire.");
+      console.error("Error activating product:", error);
+      showError("Erreur", "Erreur lors de l'activation du produit.");
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Configuration pour les livraisons
-  const deliveryConfig = useMemo(() => {
-    return {
-      title: "Gestion Logistique",
-      description:
-        "Gérez les livraisons et les partenaires logistiques pour optimiser la chaîne d'approvisionnement",
-      icon: Truck,
-      stats: deliveryStats,
-      formFields: deliveryFormFields,
-      viewFields: deliveryViewFields,
-      columns: () => deliveryColumns as ColumnDef<Delivery, unknown>[],
-      defaultFormData: defaultDeliveryFormData,
-      validationRules: deliveryValidationRules,
-    };
-  }, [
-    deliveryStats,
-    deliveryFormFields,
-    deliveryViewFields,
-    deliveryColumns,
-    defaultDeliveryFormData,
-    deliveryValidationRules,
-  ]);
+  const getStatusColor = (active: boolean) => {
+    return active ? "text-green-600 bg-green-50" : "text-red-600 bg-red-50";
+  };
 
   return (
-    <>
-      {/* Onglets */}
-      <div className="mb-6">
-        <div className="border-b border-gray-200">
-          <nav className="-mb-px flex space-x-8">
-            <button
-              onClick={() => setActiveTab("deliveries")}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                activeTab === "deliveries"
-                  ? "border-blue-500 text-blue-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-              }`}
-            >
-              <div className="flex items-center">
-                <Truck className="h-5 w-5 mr-2" />
-                Livraisons
-              </div>
-            </button>
-            <button
-              onClick={() => setActiveTab("partners")}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                activeTab === "partners"
-                  ? "border-blue-500 text-blue-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-              }`}
-            >
-              <div className="flex items-center">
-                <Building2 className="h-5 w-5 mr-2" />
-                Partenaires Transporteurs
-              </div>
-            </button>
-          </nav>
+    <div className="p-6">
+      {/* Header */}
+      <div className="mb-8">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 flex items-center">
+              <Package className="h-8 w-8 text-blue-600 mr-3" />
+              Gestion des Produits
+            </h1>
+            <p className="text-gray-600 mt-2">
+              Gérez les produits disponibles sur la plateforme
+            </p>
+          </div>
+          <button
+            onClick={handleAddProduct}
+            className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-all duration-200 flex items-center shadow-lg hover:shadow-xl transform hover:scale-105"
+          >
+            <Plus className="h-5 w-5 mr-2" />
+            Nouveau Produit
+          </button>
         </div>
       </div>
 
-      {/* Contenu des onglets */}
-      {activeTab === "deliveries" && (
-        <ManagementPage<Delivery> config={deliveryConfig} data={deliveries} />
-      )}
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
+          <div className="flex items-center">
+            <div className="p-3 bg-blue-100 rounded-lg">
+              <Package className="h-6 w-6 text-blue-600" />
+            </div>
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-600">
+                Total Produits
+              </p>
+              <p className="text-2xl font-bold text-gray-900">
+                {allProducts.length}
+              </p>
+            </div>
+          </div>
+        </div>
 
-      {activeTab === "partners" && (
-        <div className="space-y-6">
-          {/* Statistiques des partenaires */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {partnerStats.map((stat, index) => (
-              <div
-                key={index}
-                className="bg-white rounded-xl shadow-lg border border-gray-100 p-6"
-              >
-                <div className="flex items-center">
-                  <div className={`${stat.bgColor} rounded-lg p-3`}>
-                    <stat.icon className={`h-6 w-6 ${stat.color}`} />
+        <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
+          <div className="flex items-center">
+            <div className="p-3 bg-green-100 rounded-lg">
+              <CheckCircle className="h-6 w-6 text-green-600" />
+            </div>
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-600">
+                Produits Actifs
+              </p>
+              <p className="text-2xl font-bold text-gray-900">
+                {allProducts.filter((product) => product.active).length}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
+          <div className="flex items-center">
+            <div className="p-3 bg-red-100 rounded-lg">
+              <XCircle className="h-6 w-6 text-red-600" />
+            </div>
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-600">Produits Inactifs</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {allProducts.filter((product) => !product.active).length}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* DataTable */}
+      <div className="bg-white rounded-xl shadow-lg border border-gray-200">
+        <DataTable
+          data={allProducts}
+          columns={columns}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+          onView={handleView}
+        />
+      </div>
+
+      {/* Modals */}
+      {/* Modal d'ajout de produit */}
+      <Modal
+        isOpen={showAddModal}
+        onClose={handleCloseModal}
+        title="Nouveau Produit"
+        type="default"
+        size="md"
+      >
+        <ModalForm
+          onSubmit={handleSubmitAddProduct}
+          onCancel={handleCloseModal}
+          submitText="Créer le produit"
+          isLoading={isLoading}
+        >
+          <FormField
+            label="Nom"
+            name="name"
+            type="text"
+            value={newProduct.name}
+            onChange={handleInputChange}
+            required
+          />
+          <FormField
+            label="Description"
+            name="description"
+            type="textarea"
+            value={newProduct.description}
+            onChange={handleInputChange}
+            required
+            rows={3}
+          />
+          <FormField
+            label="Catégorie"
+            name="category"
+            type="text"
+            value={newProduct.category}
+            onChange={handleInputChange}
+            required
+          />
+          <FormField
+            label="Sous-catégorie"
+            name="subcategory"
+            type="text"
+            value={newProduct.subcategory}
+            onChange={handleInputChange}
+            required
+          />
+          <FormField
+            label="Unité"
+            name="unit"
+            type="select"
+            value={newProduct.unit}
+            onChange={handleInputChange}
+            required
+            options={[
+              { value: "KG", label: "Kilogramme" },
+              { value: "TON", label: "Tonne" },
+              { value: "LITER", label: "Litre" },
+              { value: "PIECE", label: "Pièce" },
+              { value: "BOX", label: "Boîte" },
+              { value: "PALLET", label: "Palette" },
+            ]}
+          />
+          <FormField
+            label="URL Image"
+            name="imageUrl"
+            type="text"
+            value={newProduct.imageUrl || ""}
+            onChange={handleInputChange}
+          />
+        </ModalForm>
+      </Modal>
+
+      {/* Modal d'édition de produit */}
+      <Modal
+        isOpen={showEditModal}
+        onClose={handleCloseEditModal}
+        title="Modifier le Produit"
+        type="info"
+        size="md"
+      >
+        <ModalForm
+          onSubmit={handleSubmitEditProduct}
+          onCancel={handleCloseEditModal}
+          submitText="Modifier le produit"
+          isLoading={isLoading}
+        >
+          <FormField
+            label="Nom"
+            name="name"
+            type="text"
+            value={newProduct.name}
+            onChange={handleInputChange}
+            required
+          />
+          <FormField
+            label="Description"
+            name="description"
+            type="textarea"
+            value={newProduct.description}
+            onChange={handleInputChange}
+            required
+            rows={3}
+          />
+          <FormField
+            label="Catégorie"
+            name="category"
+            type="text"
+            value={newProduct.category}
+            onChange={handleInputChange}
+            required
+          />
+          <FormField
+            label="Sous-catégorie"
+            name="subcategory"
+            type="text"
+            value={newProduct.subcategory}
+            onChange={handleInputChange}
+            required
+          />
+          <FormField
+            label="Unité"
+            name="unit"
+            type="select"
+            value={newProduct.unit}
+            onChange={handleInputChange}
+            required
+            options={[
+              { value: "KG", label: "Kilogramme" },
+              { value: "TON", label: "Tonne" },
+              { value: "LITER", label: "Litre" },
+              { value: "PIECE", label: "Pièce" },
+              { value: "BOX", label: "Boîte" },
+              { value: "PALLET", label: "Palette" },
+            ]}
+          />
+          <FormField
+            label="URL Image"
+            name="imageUrl"
+            type="text"
+            value={newProduct.imageUrl || ""}
+            onChange={handleInputChange}
+          />
+          <FormField
+            label="Actif"
+            name="active"
+            type="select"
+            value={newProduct.active ? "true" : "false"}
+            onChange={(e) =>
+              setNewProduct((prev) => ({
+                ...prev,
+                active: e.target.value === "true",
+              }))
+            }
+            options={[
+              { value: "true", label: "Oui" },
+              { value: "false", label: "Non" },
+            ]}
+          />
+        </ModalForm>
+      </Modal>
+
+      {/* Modal de visualisation de produit */}
+      <Modal
+        isOpen={showViewModal}
+        onClose={handleCloseViewModal}
+        title="Détails du Produit"
+        type="default"
+        size="lg"
+      >
+        {viewingProduct && (
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                  Informations Générales
+                </h3>
+                <div className="space-y-3">
+                  <div className="flex items-center">
+                    <Package className="h-5 w-5 text-gray-400 mr-3" />
+                    <div>
+                      <p className="text-sm text-gray-500">Nom</p>
+                      <p className="font-medium text-gray-900">
+                        {viewingProduct.name}
+                      </p>
+                    </div>
                   </div>
-                  <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-600">
-                      {stat.label}
-                    </p>
-                    <p className="text-2xl font-bold text-gray-900">
-                      {stat.value}
+                  <div className="flex items-center">
+                    <ImageIcon className="h-5 w-5 text-gray-400 mr-3" />
+                    <div>
+                      <p className="text-sm text-gray-500">Image</p>
+                      {viewingProduct.imageUrl ? (
+                        <img
+                          src={viewingProduct.imageUrl}
+                          alt={viewingProduct.name}
+                          className="w-24 h-24 object-cover rounded-lg mt-2"
+                        />
+                      ) : (
+                        <p className="font-medium text-gray-900">Aucune image</p>
+                      )}
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Description</p>
+                    <p className="font-medium text-gray-900">
+                      {viewingProduct.description}
                     </p>
                   </div>
                 </div>
               </div>
-            ))}
-          </div>
 
-          {/* Tableau des partenaires */}
-          <div className="bg-white rounded-xl shadow-lg border border-gray-100">
-            <div className="p-6 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">
-                Partenaires Transporteurs
-              </h3>
-              <p className="text-sm text-gray-600 mt-1">
-                Gérez vos partenaires logistiques
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                  Détails Techniques
+                </h3>
+                <div className="space-y-3">
+                  <div className="flex items-center">
+                    <CheckCircle className="h-5 w-5 text-gray-400 mr-3" />
+                    <div>
+                      <p className="text-sm text-gray-500">Catégorie</p>
+                      <p className="font-medium text-gray-900">
+                        {viewingProduct.category}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center">
+                    <CheckCircle className="h-5 w-5 text-gray-400 mr-3" />
+                    <div>
+                      <p className="text-sm text-gray-500">Sous-catégorie</p>
+                      <p className="font-medium text-gray-900">
+                        {viewingProduct.subcategory}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center">
+                    <CheckCircle className="h-5 w-5 text-gray-400 mr-3" />
+                    <div>
+                      <p className="text-sm text-gray-500">Unité</p>
+                      <p className="font-medium text-gray-900">
+                        {viewingProduct.unit}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center">
+                    <Calendar className="h-5 w-5 text-gray-400 mr-3" />
+                    <div>
+                      <p className="text-sm text-gray-500">Date de Création</p>
+                      <p className="font-medium text-gray-900">
+                        {new Date(viewingProduct.createdAt).toLocaleDateString("fr-FR")}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center">
+                    <Calendar className="h-5 w-5 text-gray-400 mr-3" />
+                    <div>
+                      <p className="text-sm text-gray-500">Dernière Mise à Jour</p>
+                      <p className="font-medium text-gray-900">
+                        {new Date(viewingProduct.updatedAt).toLocaleDateString("fr-FR")}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center">
+                    <CheckCircle className="h-5 w-5 text-gray-400 mr-3" />
+                    <div>
+                      <p className="text-sm text-gray-500">Statut</p>
+                      <p className="font-medium text-gray-900">
+                        {viewingProduct.active ? "Actif" : "Inactif"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
+              <button
+                onClick={() => {
+                  handleCloseViewModal();
+                  handleEdit(viewingProduct);
+                }}
+                className="px-4 py-2 bg-[#1E90FF] text-white rounded-lg hover:bg-[#1E90FF]/90 transition-colors duration-200"
+              >
+                Modifier
+              </button>
+              <button
+                onClick={handleCloseViewModal}
+                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors duration-200"
+              >
+                Fermer
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Modal de désactivation de produit */}
+      <Modal
+        isOpen={showDeleteModal}
+        onClose={handleCloseDeleteModal}
+        title="Désactiver le Produit"
+        type="error"
+        size="sm"
+      >
+        {deletingProduct && (
+          <div className="space-y-4">
+            <div className="flex items-center">
+              <AlertCircle className="h-6 w-6 text-red-600 mr-3" />
+              <div>
+                <p className="text-gray-900 font-medium">
+                  Êtes-vous sûr de vouloir désactiver ce produit ?
+                </p>
+                <p className="text-sm text-gray-600 mt-1">
+                  Cette action peut être annulée en réactivant le produit.
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <p className="text-sm text-gray-600">
+                <strong>Nom :</strong> {deletingProduct.name}
+              </p>
+              <p className="text-sm text-gray-600">
+                <strong>Catégorie :</strong> {deletingProduct.category}
               </p>
             </div>
-            <div className="p-6">
-              <DataTable
-                data={partners}
-                columns={
-                  partnerColumns as ColumnDef<LogisticsPartner, unknown>[]
-                }
-                searchPlaceholder="Rechercher un partenaire..."
-                showPagination={true}
-                pageSize={10}
-              />
+
+            <div className="flex space-x-3">
+              <button
+                onClick={handleSubmitDeleteProduct}
+                disabled={isLoading}
+                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors duration-200 disabled:opacity-50 flex items-center justify-center"
+              >
+                {isLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : (
+                  <Trash2 className="h-4 w-4 mr-2" />
+                )}
+                Désactiver
+              </button>
+              <button
+                onClick={handleCloseDeleteModal}
+                disabled={isLoading}
+                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors duration-200 disabled:opacity-50"
+              >
+                Annuler
+              </button>
             </div>
           </div>
-        </div>
-      )}
-
-      {/* Modal de démarrage de livraison */}
-      <Modal
-        isOpen={showStartModal}
-        onClose={() => setShowStartModal(false)}
-        title="Démarrer une Livraison"
-        size="md"
-      >
-        {selectedDelivery && (
-          <DeliveryActions
-            delivery={selectedDelivery}
-            onStart={handleStart}
-            onComplete={handleComplete}
-            onCancel={handleCancel}
-          />
         )}
-
-        <ModalForm
-          onSubmit={handleStartSubmit}
-          onCancel={() => setShowStartModal(false)}
-          submitText="Démarrer"
-          isLoading={isLoading}
-        >
-          <FormField
-            label="Commentaire de démarrage"
-            name="startComment"
-            type="textarea"
-            value=""
-            onChange={() => {}}
-            placeholder="Commentaire sur le démarrage..."
-            rows={3}
-          />
-        </ModalForm>
       </Modal>
 
-      {/* Modal de fin de livraison */}
+      {/* Modal d'activation de produit */}
       <Modal
-        isOpen={showCompleteModal}
-        onClose={() => setShowCompleteModal(false)}
-        title="Marquer comme Livré"
-        size="md"
+        isOpen={showActivateModal}
+        onClose={handleCloseActivateModal}
+        title="Activer le Produit"
+        type="info"
+        size="sm"
       >
-        {selectedDelivery && (
-          <DeliveryActions
-            delivery={selectedDelivery}
-            onStart={handleStart}
-            onComplete={handleComplete}
-            onCancel={handleCancel}
-          />
+        {activatingProduct && (
+          <div className="space-y-4">
+            <div className="flex items-center">
+              <CheckCircle className="h-6 w-6 text-green-600 mr-3" />
+              <div>
+                <p className="text-gray-900 font-medium">
+                  Êtes-vous sûr de vouloir activer ce produit ?
+                </p>
+                <p className="text-sm text-gray-600 mt-1">
+                  Le produit sera à nouveau visible et disponible sur la plateforme.
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <p className="text-sm text-gray-600">
+                <strong>Nom :</strong> {activatingProduct.name}
+              </p>
+              <p className="text-sm text-gray-600">
+                <strong>Catégorie :</strong> {activatingProduct.category}
+              </p>
+            </div>
+
+            <div className="flex space-x-3">
+              <button
+                onClick={handleSubmitActivateProduct}
+                disabled={isLoading}
+                className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200 disabled:opacity-50 flex items-center justify-center"
+              >
+                {isLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : (
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                )}
+                Activer
+              </button>
+              <button
+                onClick={handleCloseActivateModal}
+                disabled={isLoading}
+                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors duration-200 disabled:opacity-50"
+              >
+                Annuler
+              </button>
+            </div>
+          </div>
         )}
-
-        <ModalForm
-          onSubmit={handleCompleteSubmit}
-          onCancel={() => setShowCompleteModal(false)}
-          submitText="Marquer livré"
-          isLoading={isLoading}
-        >
-          <FormField
-            label="Commentaire de livraison"
-            name="deliveryComment"
-            type="textarea"
-            value=""
-            onChange={() => {}}
-            placeholder="Commentaire sur la livraison..."
-            required
-            rows={3}
-          />
-          <FormField
-            label="Heure de livraison"
-            name="deliveryTime"
-            type="text"
-            value=""
-            onChange={() => {}}
-            placeholder="14:30"
-            required
-          />
-        </ModalForm>
       </Modal>
-
-      {/* Modal d'annulation de livraison */}
-      <Modal
-        isOpen={showCancelModal}
-        onClose={() => setShowCancelModal(false)}
-        title="Annuler une Livraison"
-        size="md"
-      >
-        {selectedDelivery && (
-          <DeliveryActions
-            delivery={selectedDelivery}
-            onStart={handleStart}
-            onComplete={handleComplete}
-            onCancel={handleCancel}
-          />
-        )}
-
-        <ModalForm
-          onSubmit={handleCancelSubmit}
-          onCancel={() => setShowCancelModal(false)}
-          submitText="Annuler"
-          isLoading={isLoading}
-          submitVariant="danger"
-        >
-          <FormField
-            label="Raison de l'annulation"
-            name="cancellationReason"
-            type="select"
-            value=""
-            onChange={() => {}}
-            required
-            options={[
-              { value: "weather", label: "Conditions météorologiques" },
-              { value: "vehicle-issue", label: "Problème de véhicule" },
-              { value: "driver-unavailable", label: "Chauffeur indisponible" },
-              { value: "customer-request", label: "Demande du client" },
-              { value: "other", label: "Autre" },
-            ]}
-          />
-          <FormField
-            label="Commentaire"
-            name="cancellationComment"
-            type="textarea"
-            value=""
-            onChange={() => {}}
-            placeholder="Détails de l'annulation..."
-            required
-            rows={3}
-          />
-        </ModalForm>
-      </Modal>
-
-      {/* Modal des partenaires */}
-      <Modal
-        isOpen={showPartnerModal}
-        onClose={() => setShowPartnerModal(false)}
-        title="Gérer un Partenaire"
-        size="md"
-      >
-        {selectedPartner && (
-          <PartnerActions
-            partner={selectedPartner}
-            onActivate={handlePartnerActivate}
-          />
-        )}
-
-        <ModalForm
-          onSubmit={handlePartnerSubmit}
-          onCancel={() => setShowPartnerModal(false)}
-          submitText="Confirmer"
-          isLoading={isLoading}
-        >
-          <FormField
-            label="Commentaire sur l'action"
-            name="partnerComment"
-            type="textarea"
-            value=""
-            onChange={() => {}}
-            placeholder="Commentaire sur l'action..."
-            rows={3}
-          />
-        </ModalForm>
-      </Modal>
-    </>
+    </div>
   );
 };
 
-export default LogisticsManagementOptimized;
+export default ProductManagement;

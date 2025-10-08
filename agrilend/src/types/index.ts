@@ -76,18 +76,14 @@ export interface FinancialTransaction {
 export interface Product {
   id: number;
   name: string;
-  category: 'vegetables' | 'fruits' | 'grains' | 'livestock' | 'other';
   description: string;
-  farmer: string;
-  price: number;
-  quantity: number;
-  unit: 'kg' | 'piece' | 'ton' | 'box';
-  status: 'pending' | 'approved' | 'rejected';
-  images: string[];
-  location: string;
-  harvestDate: string;
-  organic: boolean;
+  category: string; // Type ajusté pour correspondre au JSON
+  subcategory: string;
+  unit: string; // Type ajusté pour correspondre au JSON
+  imageUrl: string | null;
   createdAt: string;
+  updatedAt: string;
+  active: boolean;
 }
 
 

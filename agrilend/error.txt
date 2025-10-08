@@ -1,57 +1,9 @@
-Dans ma page ProductManagement , fais marcher l affichage des produits , voici le liens et le json de mon postman, change les champs de la page en consequent , il ne doit rien avoir de logistique encore , tous doit avoir avec produits
-
 http://localhost:8080/api/admin/products
 
-
-{
-    "success": true,
-    "message": "Produits récupérés avec succès",
-    "data": {
-        "content": [
-            {
-                "id": 3,
-                "name": "Haricot ",
-                "description": "Haricot  de qualité supérieure, idéal pour la production de pâtes.",
-                "category": "Céréales",
-                "subcategory": "Haricot",
-                "unit": "KG",
-                "imageUrl": null,
-                "createdAt": "2025-10-07T06:44:18",
-                "updatedAt": "2025-10-07T06:44:18",
-                "active": false
-            },
-            {
-                "id": 2,
-                "name": "Maïs et autres",
-                "description": "Maïs  de qualité supérieure, idéal pour la production de pâtes.",
-                "category": "Céréales",
-                "subcategory": "Blé",
-                "unit": "KG",
-                "imageUrl": null,
-                "createdAt": "2025-09-24T16:40:24",
-                "updatedAt": "2025-10-07T12:58:47",
-                "active": false
-            },
-            {
-                "id": 1,
-                "name": "Blé Tendre Bio Premium",
-                "description": "Blé tendre biologique de qualité supérieure, idéal pour la boulangerie artisanale.",
-                "category": "Céréales",
-                "subcategory": "Blé",
-                "unit": "LITER",
-                "imageUrl": null,
-                "createdAt": "2025-09-23T12:08:31",
-                "updatedAt": "2025-10-07T12:57:55",
-                "active": false
-            }
-        ],
-        "page": 0,
-        "size": 10,
-        "totalElements": 3,
-        "totalPages": 1,
-        "first": true,
-        "last": true,
-        "empty": false
-    },
-    "timestamp": "2025-10-08T07:42:38.3265932"
-}
+ {
+        "name": "Haricot ",
+        "description": "Haricot  de qualité supérieure, idéal pour la production de pâtes.",
+        "category": "Céréales",
+        "subcategory": "Haricot",
+        "unit": "KG"
+      }
