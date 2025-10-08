@@ -9,7 +9,7 @@ export const initialUserForm: UserFormData = {
   address: "",
   hederaAccountId: "",
   role: "FARMER",
-  status: "PENDING", // Gardé pour le formulaire, mais sera géré par 'active'
+  status: "ACTIVE", // Défini sur ACTIF par défaut car PENDING est supprimé
   farmName: "",
   farmLocation: "",
   farmSize: "",

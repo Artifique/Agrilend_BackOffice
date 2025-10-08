@@ -140,19 +140,16 @@ export const updateUser = async (userId: number, userData: UserProfileDto): Prom
  */
 export const activateUser = async (userId: number): Promise<void> => {
   try {
-    await apiClient.post(`/admin/users/${userId}/enable`);
+    await apiClient.post(`/admin/users/${userId}/enable`, {}); // Ajout d'un corps de requête vide
   } catch (error) {
     console.error(`Error activating user ${userId}:`, error);
     throw error;
   }
 };
 
-/**
- * Désactive un compte utilisateur (pour les admins).
- */
 export const deactivateUser = async (userId: number): Promise<void> => {
   try {
-    await apiClient.post(`/admin/users/${userId}/disable`);
+    await apiClient.post(`/admin/users/${userId}/disable`, {}); // Ajout d'un corps de requête vide
   } catch (error) {
     console.error(`Error deactivating user ${userId}:`, error);
     throw error;

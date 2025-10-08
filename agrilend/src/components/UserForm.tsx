@@ -45,7 +45,7 @@ export interface User {
   companyAddress?: string;
   // Champs qui étaient dans l'ancienne interface mais pas dans le JSON fourni, rendus optionnels
   address?: string;
-  status?: "ACTIVE" | "PENDING" | "INACTIVE"; // Gardé pour la compatibilité, mais peut être déduit de 'active'
+  status?: "ACTIVE" | "INACTIVE"; // 'PENDING' supprimé
   isActive?: boolean; // Gardé pour la compatibilité, mais 'active' est la source
   emailVerified?: boolean;
   lastLogin?: string;
@@ -64,7 +64,7 @@ export type UserFormData = {
   address?: string;
   hederaAccountId?: string;
   role: "FARMER" | "BUYER" | "ADMIN";
-  status: "ACTIVE" | "PENDING" | "INACTIVE";
+  status: "ACTIVE" | "INACTIVE"; // 'PENDING' supprimé
   // Champs spécifiques aux profils, directement sur l'objet UserFormData
   farmName?: string;
   farmLocation?: string;
@@ -185,7 +185,6 @@ const UserForm: React.FC<{
       required
       options={[
         { value: "ACTIVE", label: "Actif" },
-        { value: "PENDING", label: "En attente" },
         { value: "INACTIVE", label: "Inactif" },
       ]}
     />
