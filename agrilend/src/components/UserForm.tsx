@@ -190,7 +190,7 @@ const UserForm: React.FC<{
       ]}
     />
 
-    {user.role === "FARMER" && user.farmerProfile && (
+    {user.role === "FARMER" && (
       <div className="md:col-span-2">
         <h3 className="text-lg font-semibold mt-6 mb-3">Profil Agriculteur</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -198,8 +198,8 @@ const UserForm: React.FC<{
             label="Nom de la ferme"
             name="farmName"
             type="text"
-            value={user.farmerProfile.farmName}
-            onChange={(e) => onProfileChange(e, "farmerProfile")}
+            value={user.farmName || ""}
+            onChange={onChange}
             placeholder="Ferme du Bonheur"
             required
           />
@@ -207,59 +207,24 @@ const UserForm: React.FC<{
             label="Localisation de la ferme"
             name="farmLocation"
             type="text"
-            value={user.farmerProfile.farmLocation}
-            onChange={(e) => onProfileChange(e, "farmerProfile")}
+            value={user.farmLocation || ""}
+            onChange={onChange}
             placeholder="Yamoussoukro, Côte d'Ivoire"
             required
           />
           <FormField
             label="Taille de la ferme (hectares)"
-            name="farmSizeHectares"
-            type="number"
-            value={user.farmerProfile.farmSizeHectares || ""}
-            onChange={(e) => onProfileChange(e, "farmerProfile")}
-            placeholder="100"
-          />
-          <FormField
-            label="Certifications (JSON)"
-            name="certifications"
-            type="textarea"
-            value={user.farmerProfile.certifications || ""}
-            onChange={(e) => onProfileChange(e, "farmerProfile")}
-            placeholder='["Bio", "GlobalGAP"]'
-            className="md:col-span-2" // Make textarea span two columns
-          />
-          <FormField
-            label="Détails du compte bancaire"
-            name="bankAccountDetails"
-            type="textarea"
-            value={user.farmerProfile.bankAccountDetails || ""}
-            onChange={(e) => onProfileChange(e, "farmerProfile")}
-            placeholder="RIB, IBAN, SWIFT"
-            className="md:col-span-2" // Make textarea span two columns
-          />
-          <FormField
-            label="Année de début d'activité"
-            name="farmingSince"
-            type="number"
-            value={user.farmerProfile.farmingSince || ""}
-            onChange={(e) => onProfileChange(e, "farmerProfile")}
-            placeholder="2000"
-          />
-          <FormField
-            label="Spécialisations (JSON)"
-            name="specializations"
-            type="textarea"
-            value={user.farmerProfile.specializations || ""}
-            onChange={(e) => onProfileChange(e, "farmerProfile")}
-            placeholder='["Céréales", "Légumes"]'
-            className="md:col-span-2" // Make textarea span two columns
+            name="farmSize"
+            type="text"
+            value={user.farmSize || ""}
+            onChange={onChange}
+            placeholder="100 hectares"
           />
         </div>
       </div>
     )}
 
-    {user.role === "BUYER" && user.buyerProfile && (
+    {user.role === "BUYER" && (
       <div className="md:col-span-2">
         <h3 className="text-lg font-semibold mt-6 mb-3">Profil Acheteur</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -267,68 +232,26 @@ const UserForm: React.FC<{
             label="Nom de l'entreprise"
             name="companyName"
             type="text"
-            value={user.buyerProfile.companyName || ""}
-            onChange={(e) => onProfileChange(e, "buyerProfile")}
+            value={user.companyName || ""}
+            onChange={onChange}
             placeholder="Agro Distribution SARL"
             required
           />
           <FormField
-            label="Type d'entreprise"
-            name="businessType"
+            label="Type d'activité"
+            name="activityType"
             type="text"
-            value={user.buyerProfile.businessType || ""}
-            onChange={(e) => onProfileChange(e, "buyerProfile")}
-            placeholder="SARL, SA, EURL"
+            value={user.activityType || ""}
+            onChange={onChange}
+            placeholder="Grossiste"
           />
           <FormField
-            label="Numéro d'enregistrement commercial"
-            name="businessRegistrationNumber"
+            label="Adresse de l'entreprise"
+            name="companyAddress"
             type="text"
-            value={user.buyerProfile.businessRegistrationNumber || ""}
-            onChange={(e) => onProfileChange(e, "buyerProfile")}
-            placeholder="RC 1234567"
-          />
-          <FormField
-            label="Numéro de TVA"
-            name="vatNumber"
-            type="text"
-            value={user.buyerProfile.vatNumber || ""}
-            onChange={(e) => onProfileChange(e, "buyerProfile")}
-            placeholder="FRXX123456789"
-          />
-          <FormField
-            label="Adresse de facturation"
-            name="billingAddress"
-            type="textarea"
-            value={user.buyerProfile.billingAddress || ""}
-            onChange={(e) => onProfileChange(e, "buyerProfile")}
-            placeholder="123 Rue de la Facturation, Ville"
-            className="md:col-span-2" // Make textarea span two columns
-          />
-          <FormField
-            label="Adresse de livraison"
-            name="shippingAddress"
-            type="textarea"
-            value={user.buyerProfile.shippingAddress || ""}
-            onChange={(e) => onProfileChange(e, "buyerProfile")}
-            placeholder="456 Avenue de la Livraison, Ville"
-            className="md:col-span-2" // Make textarea span two columns
-          />
-          <FormField
-            label="Limite de crédit"
-            name="creditLimit"
-            type="number"
-            value={user.buyerProfile.creditLimit || ""}
-            onChange={(e) => onProfileChange(e, "buyerProfile")}
-            placeholder="10000.00"
-          />
-          <FormField
-            label="Jours de conditions de paiement"
-            name="paymentTermsDays"
-            type="number"
-            value={user.buyerProfile.paymentTermsDays || ""}
-            onChange={(e) => onProfileChange(e, "buyerProfile")}
-            placeholder="30"
+            value={user.companyAddress || ""}
+            onChange={onChange}
+            placeholder="10 Rue de la Commerce"
           />
         </div>
       </div>

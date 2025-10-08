@@ -18,7 +18,9 @@ import Modal from "../components/Modal";
 import ModalForm from "../components/ModalForm";
 import UserForm, { UserFormData, User } from "../components/UserForm";
 import { initialUserForm } from "../components/userFormConstants";
-import { getAllUsers } from "../services/userService";
+import { getAllUsers, registerUser } from "../services/userService";
+import { useNotificationHelpers } from "../hooks/useNotificationHelpers";
+
 const UsersManagement: React.FC = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -30,7 +32,9 @@ const UsersManagement: React.FC = () => {
   const [newUser, setNewUser] = useState<UserFormData>(initialUserForm);
   const [allUsers, setAllUsers] = useState<User[]>([]); // State to hold fetched users
 
-  // Function to fetch users from the API
+  const { showSuccess, showError } = useNotificationHelpers();
+
+  // Function to fetch users from an API
   const fetchUsers = async () => {
     setIsLoading(true);
     try {
@@ -38,7 +42,7 @@ const UsersManagement: React.FC = () => {
       setAllUsers(fetchedUsers);
     } catch (error) {
       console.error("Failed to fetch users:", error);
-      // Optionally, show an error notification to the user
+      showError("Erreur de chargement", "Impossible de charger la liste des utilisateurs.");
     } finally {
       setIsLoading(false);
     }
@@ -282,17 +286,26 @@ const UsersManagement: React.FC = () => {
     e.preventDefault();
     setIsLoading(true);
     try {
-      // TODO: Replace with actual API call to create user
-      // Example: const response = await fetch('/api/users', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(newUser),
-      // });
-      // const data = await response.json();
-      // console.log('User created:', data);
+      const userToRegister: SignupRequest = {
+        firstName: newUser.firstName,
+        lastName: newUser.lastName,
+        email: newUser.email,
+        password: newUser.password, // Le mot de passe est requis pour l'enregistrement
+        phone: newUser.phone || undefined,
+        role: newUser.role,
+      };
 
-      await new Promise((resolve) => setTimeout(resolve, 500)); // Simulate API call
-      console.log("Submitting new user:", newUser);
+      if (newUser.role === "FARMER") {
+        userToRegister.farmName = newUser.farmName || undefined;
+        userToRegister.farmLocation = newUser.farmLocation || undefined;
+        userToRegister.farmSize = newUser.farmSize || undefined;
+      } else if (newUser.role === "BUYER") {
+        userToRegister.companyName = newUser.companyName || undefined;
+        userToRegister.activityType = newUser.activityType || undefined;
+        userToRegister.companyAddress = newUser.companyAddress || undefined;
+      }
+
+      await registerUser(userToRegister);
 
       alert("Utilisateur ajouté avec succès !");
       handleCloseModal();

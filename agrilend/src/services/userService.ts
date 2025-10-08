@@ -21,17 +21,21 @@ interface PaginatedUsers {
 }
 
 // DTO pour la mise à jour/création d'utilisateur par l'admin
-export interface UserProfileDto {
+export interface SignupRequest {
   firstName: string;
   lastName: string;
   email: string;
+  password?: string; // Optionnel car l'admin pourrait ne pas définir le mot de passe initialement
   phone?: string;
-  address?: string;
-  hederaAccountId?: string;
   role: "FARMER" | "BUYER" | "ADMIN";
-  status: "ACTIVE" | "PENDING" | "INACTIVE";
-  farmerProfile?: { farmName: string; farmLocation: string }; // Simplified for DTO
-  buyerProfile?: { companyName: string }; // Simplified for DTO
+  // Champs spécifiques au FARMER
+  farmName?: string;
+  farmLocation?: string;
+  farmSize?: string;
+  // Champs spécifiques au BUYER
+  companyName?: string;
+  activityType?: string;
+  companyAddress?: string;
 }
 
 // --- FONCTIONS POUR ADMINISTRATEURS ---
@@ -63,6 +67,22 @@ export const getUserById = async (userId: number): Promise<User> => {
     return response.data.data; // ✅ bien extraire depuis data.data
   } catch (error) {
     console.error(`Error fetching user ${userId}:`, error);
+    throw error;
+  }
+};
+
+/**
+ * Enregistre un nouvel utilisateur (pour les admins ou via le formulaire d'inscription).
+ */
+export const registerUser = async (userData: SignupRequest): Promise<string> => {
+  try {
+    const response = await apiClient.post<ApiResponse<string>>(
+      "/auth/register",
+      userData
+    );
+    return response.data.message; // Retourne le message de succès
+  } catch (error) {
+    console.error("Error registering user:", error);
     throw error;
   }
 };
