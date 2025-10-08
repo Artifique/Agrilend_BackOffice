@@ -1,9 +1,24 @@
 import apiClient from "./api";
+import { Order } from "../types"; // Importer depuis les types globaux
 
-// Définition du type pour une commande. Adaptez-le à la réponse de votre API.
-export interface Order {
-  id: string; // ou number
-  // ... autres champs
+// Structure de réponse générique de l'API
+interface ApiResponse<T> {
+  success: boolean;
+  message: string;
+  data: T;
+  timestamp?: string;
+}
+
+// Structure pour les réponses paginées
+interface PageResponse<T> {
+  content: T[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+  first: boolean;
+  last: boolean;
+  empty: boolean;
 }
 
 // --- FONCTIONS POUR ADMINISTRATEURS ---
@@ -13,10 +28,10 @@ export interface Order {
  */
 export const getAllOrders = async (page = 0, size = 10): Promise<Order[]> => {
   try {
-    const response = await apiClient.get("/admin/orders", {
+    const response = await apiClient.get<ApiResponse<PageResponse<Order>>>("/admin/orders", {
       params: { page, size },
     });
-    return response.data;
+    return response.data.data.content; // Extraire le contenu de la réponse paginée
   } catch (error) {
     console.error("Error fetching all orders:", error);
     throw error;
@@ -28,8 +43,8 @@ export const getAllOrders = async (page = 0, size = 10): Promise<Order[]> => {
  */
 export const getOrderById = async (orderId: string): Promise<Order> => {
   try {
-    const response = await apiClient.get(`/admin/orders/${orderId}`);
-    return response.data;
+    const response = await apiClient.get<ApiResponse<Order>>(`/admin/orders/${orderId}`);
+    return response.data.data; // Extraire les données de la commande
   } catch (error) {
     console.error(`Error fetching order ${orderId}:`, error);
     throw error;
@@ -44,10 +59,10 @@ export const updateOrderStatus = async (
   status: string
 ): Promise<Order> => {
   try {
-    const response = await apiClient.post(`/admin/orders/${orderId}/status`, {
+    const response = await apiClient.post<ApiResponse<Order>>(`/admin/orders/${orderId}/status`, {
       status,
     });
-    return response.data;
+    return response.data.data;
   } catch (error) {
     console.error(`Error updating status for order ${orderId}:`, error);
     throw error;
@@ -59,7 +74,8 @@ export const updateOrderStatus = async (
  */
 export const releaseEscrow = async (orderId: string): Promise<void> => {
   try {
-    await apiClient.post(`/admin/orders/${orderId}/release-escrow`);
+    // La réponse peut ne pas avoir de contenu, donc pas de .data.data
+    await apiClient.post<ApiResponse<void>>(`/admin/orders/${orderId}/release-escrow`);
   } catch (error) {
     console.error(`Error releasing escrow for order ${orderId}:`, error);
     throw error;
@@ -75,8 +91,8 @@ export const createOrder = async (
   orderData: Record<string, unknown>
 ): Promise<Order> => {
   try {
-    const response = await apiClient.post("/buyer/orders", orderData);
-    return response.data;
+    const response = await apiClient.post<ApiResponse<Order>>("/buyer/orders", orderData);
+    return response.data.data;
   } catch (error) {
     console.error("Error creating order:", error);
     throw error;
@@ -88,8 +104,8 @@ export const createOrder = async (
  */
 export const getMyOrders = async (): Promise<Order[]> => {
   try {
-    const response = await apiClient.get("/buyer/orders");
-    return response.data;
+    const response = await apiClient.get<ApiResponse<PageResponse<Order>>>("/buyer/orders");
+    return response.data.data.content;
   } catch (error) {
     console.error("Error fetching buyer orders:", error);
     throw error;

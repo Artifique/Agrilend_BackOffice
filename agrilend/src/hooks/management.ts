@@ -1,5 +1,4 @@
-// Hooks personnalisés pour optimiser les pages de gestion
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 
 // Hook pour la gestion des modals multiples
 export const useModals = <T extends Record<string, boolean>>(initialModals: T) => {
@@ -41,6 +40,10 @@ export const useEntityManagement = <T extends { id: number }>(
   const [selectedItem, setSelectedItem] = useState<T | null>(null);
   const [formData, setFormData] = useState<Partial<T>>(defaultFormData);
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    setData(initialData);
+  }, [initialData]);
   
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
