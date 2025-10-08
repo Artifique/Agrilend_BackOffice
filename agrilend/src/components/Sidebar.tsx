@@ -22,7 +22,7 @@ interface NavigationItem {
 const navigation: NavigationItem[] = [
   { name: "Dashboard", path: "/dashboard", icon: BarChart3 },
   { name: "Gestion Utilisateurs", path: "/users", icon: Users },
-  { name: "Validation Produits", path: "/products-validation", icon: Package },
+  { name: "Gestion des offres", path: "/offers", icon: Package },
   { name: "Commandes", path: "/orders", icon: ShoppingCart },
   { name: "Gestion Financière", path: "/financial", icon: DollarSign },
   { name: "Gestion des Produits", path: "/products", icon: Package },

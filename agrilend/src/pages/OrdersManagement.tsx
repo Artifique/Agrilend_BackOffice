@@ -155,9 +155,9 @@ const OrdersManagement: React.FC = () => {
               variant="ghost"
               size="sm"
               onClick={() => handleView(row.original)}
-              className="h-8 w-8 p-0"
+              className="h-8 w-8 p-0 bg-green-100 hover:bg-green-200 rounded-full"
             >
-              <Eye className="h-4 w-4" />
+              <Eye className="h-5 w-5 text-green-700" />
             </Button>
             {/* Other action buttons can be added here based on status */}
           </div>

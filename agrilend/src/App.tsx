@@ -14,7 +14,7 @@ import Login from "./pages/Login";
 import Notifications from "./pages/Notifications";
 import Dashboard from "./pages/Dashboard";
 import UsersManagement from "./pages/UsersManagement";
-import ProductsValidation from "./pages/ProductsValidation";
+import OffersManagement from "./pages/OffersManagement";
 import OrdersManagement from "./pages/OrdersManagement";
 import FinancialManagement from "./pages/FinancialManagement";
 import ProductManagement from "./pages/ProductManagement";
@@ -43,10 +43,7 @@ const AppRoutes: React.FC = () => {
             <Route index element={<Navigate to="/dashboard" replace />} />
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="users" element={<UsersManagement />} />
-            <Route
-              path="products-validation"
-              element={<ProductsValidation />}
-            />
+            <Route path="offers" element={<OffersManagement />} />
             <Route path="orders" element={<OrdersManagement />} />
             <Route path="financial" element={<FinancialManagement />} />
             <Route path="products" element={<ProductManagement />} />

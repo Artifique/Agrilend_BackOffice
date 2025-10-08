@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   useReactTable,
   getCoreRowModel,
@@ -36,9 +36,11 @@ interface DataTableProps<T> {
   onEdit?: (row: T) => void;
   onDelete?: (row: T) => void;
   className?: string;
+  pageCount?: number;
+  onPageChange?: (page: number) => void;
 }
 
-function DataTable<T>({
+function DataTable<T>({ 
   data,
   columns,
   searchPlaceholder = "Rechercher...",
@@ -49,12 +51,17 @@ function DataTable<T>({
   onView,
   onEdit,
   onDelete,
-  className = ""
+  className = "",
+  pageCount: controlledPageCount,
+  onPageChange
 }: DataTableProps<T>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [globalFilter, setGlobalFilter] = useState('');
   const [rowSelection, setRowSelection] = useState({});
+  const [pageIndex, setPageIndex] = useState(0);
+
+  const manualPagination = controlledPageCount !== undefined;
 
   const table = useReactTable({
     data,
@@ -64,8 +71,14 @@ function DataTable<T>({
       columnFilters,
       globalFilter,
       rowSelection,
+      pagination: {
+        pageIndex,
+        pageSize,
+      },
     },
     enableRowSelection: true,
+    manualPagination: manualPagination,
+    pageCount: controlledPageCount,
     onRowSelectionChange: setRowSelection,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
@@ -74,12 +87,23 @@ function DataTable<T>({
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    initialState: {
-      pagination: {
-        pageSize: pageSize,
-      },
+    onPaginationChange: (updater) => {
+      if (typeof updater === 'function') {
+        const newPageIndex = updater({ pageIndex, pageSize }).pageIndex;
+        setPageIndex(newPageIndex);
+        onPageChange?.(newPageIndex);
+      } else {
+        setPageIndex(updater.pageIndex);
+        onPageChange?.(updater.pageIndex);
+      }
     },
   });
+
+  useEffect(() => {
+    if (manualPagination) {
+      table.setPageSize(pageSize);
+    }
+  }, [manualPagination, pageSize, table]);
 
   const selectedRows = table.getFilteredSelectedRowModel().rows.length;
 

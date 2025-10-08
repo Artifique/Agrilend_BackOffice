@@ -1,41 +1,7 @@
-http://localhost:8080/api/admin/orders
-
-{
-    "success": true,
-    "message": "Commandes récupérées avec succès",
-    "data": {
-        "content": [
-            {
-                "id": 4,
-                "orderNumber": "AGL-2025-1758721312099",
-                "offerId": 1,
-                "orderedQuantity": 3.00,
-                "unitPrice": 262.50,
-                "totalAmount": 787.50,
-                "status": "DELIVERED",
-                "deliveryAddress": "Entrepôt Bio Distribution, 15 rue de la Paix, 75002 Paris",
-                "notes": "la note",
-                "productName": "Blé Tendre Bio Premium",
-                "productUnit": "LITER",
-                "farmerId": 2,
-                "farmerName": "Sy Modibo",
-                "buyerId": 3,
-                "buyerName": "Kones Abou",
-                "buyerEmail": "daou.arti19@gmail.com",
-                "escrowTransactionId": "simulated_tx_1758721314207",
-                "escrowStartDate": "2025-09-24T13:41:54",
-                "escrowEndDate": "2025-12-24T13:41:54",
-                "createdAt": "2025-09-24T13:41:52",
-                "updatedAt": "2025-09-24T16:46:59"
-            }
-        ],
-        "page": 0,
-        "size": 10,
-        "totalElements": 1,
-        "totalPages": 1,
-        "first": true,
-        "last": true,
-        "empty": false
-    },
-    "timestamp": "2025-10-08T10:07:53.2004895"
-}
+RELEASED
+PENDING
+IN_DELIVERY
+IN_ESCROW
+DELIVERED
+CANCELLED
+DISPUTED
