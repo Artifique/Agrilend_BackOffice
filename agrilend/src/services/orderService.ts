@@ -59,9 +59,11 @@ export const updateOrderStatus = async (
   status: string
 ): Promise<Order> => {
   try {
-    const response = await apiClient.post<ApiResponse<Order>>(`/admin/orders/${orderId}/status`, {
-      status,
-    });
+    const response = await apiClient.post<ApiResponse<Order>>(
+      `/admin/orders/${orderId}/status`,
+      null, // Le corps de la requête est vide
+      { params: { status } } // Le statut est passé en paramètre de requête
+    );
     return response.data.data;
   } catch (error) {
     console.error(`Error updating status for order ${orderId}:`, error);

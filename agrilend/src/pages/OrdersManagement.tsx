@@ -8,9 +8,9 @@ import {
   XCircle,
   Clock,
   Truck,
-  AlertTriangle,
-  MapPin,
   Eye,
+  Edit,
+  MapPin,
   Shield,
 } from "lucide-react";
 import Modal from "../components/Modal";
@@ -18,11 +18,11 @@ import ModalForm from "../components/ModalForm";
 import FormField from "../components/FormField";
 import { ColumnDef } from "@tanstack/react-table";
 import { Order } from "../types";
-import { Button, Badge } from "../components/ui";
-import { ManagementPage } from "../components/ManagementPage";
-import { getAllOrders } from "../services/orderService"; // Import the service
+import { Button } from "../components/ui";
+import DataTable from "../components/DataTable";
+import { getAllOrders, updateOrderStatus } from "../services/orderService";
+import { useNotificationHelpers } from "../hooks/useNotificationHelpers";
 
-// Utility function for status color
 function getStatusColor(status: Order["status"]): string {
   switch (status) {
     case "PENDING": return "bg-yellow-100 text-yellow-800";
@@ -36,44 +36,58 @@ function getStatusColor(status: Order["status"]): string {
   }
 }
 
-// Order Actions Component (simplified for brevity, ensure props match Order type)
-interface OrderActionsProps {
-  order: Order;
-  // Add action handlers as props
-}
-
-const OrderActions: React.FC<OrderActionsProps> = ({ order }) => {
-  // Action logic here...
-  return <div>Actions for {order.orderNumber}</div>;
-};
-
 const OrdersManagement: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [showViewModal, setShowViewModal] = useState(false);
+  const [showStatusModal, setShowStatusModal] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [newStatus, setNewStatus] = useState<Order["status"] | "">("");
   const [isLoading, setIsLoading] = useState(false);
+  const { showSuccess, showError } = useNotificationHelpers();
 
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
     setIsLoading(true);
     try {
       const fetchedOrders = await getAllOrders();
       setOrders(fetchedOrders);
     } catch (error) {
       console.error("Failed to fetch orders:", error);
-      // Optionally, show an error notification to the user
+      showError("Erreur", "Impossible de charger les commandes.");
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [showError]);
 
   useEffect(() => {
     fetchOrders();
-  }, []);
+  }, [fetchOrders]);
 
-  const handleView = useCallback((order: Order) => {
+  const handleViewClick = (order: Order) => {
     setSelectedOrder(order);
     setShowViewModal(true);
-  }, []);
+  };
+
+  const handleUpdateStatusClick = (order: Order) => {
+    setSelectedOrder(order);
+    setNewStatus(order.status);
+    setShowStatusModal(true);
+  };
+
+  const handleSubmitStatusUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedOrder || !newStatus) return;
+
+    try {
+      await updateOrderStatus(String(selectedOrder.id), newStatus);
+      showSuccess("Succès", "Statut de la commande mis à jour.");
+      setShowStatusModal(false);
+      setSelectedOrder(null);
+      setNewStatus("");
+      fetchOrders();
+    } catch (error) {
+      showError("Erreur", "Impossible de mettre à jour le statut.");
+    }
+  };
 
   const columns = useMemo<ColumnDef<Order, unknown>[]>(
     () => [
@@ -111,7 +125,7 @@ const OrdersManagement: React.FC = () => {
         ),
       },
       {
-        accessorKey: "totalAmount", // Changed from totalPrice
+        accessorKey: "totalAmount",
         header: "Montant Total",
         cell: ({ row }) => (
           <div className="flex items-center">
@@ -154,17 +168,24 @@ const OrdersManagement: React.FC = () => {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => handleView(row.original)}
-              className="h-8 w-8 p-0 bg-green-100 hover:bg-green-200 rounded-full"
+              onClick={() => handleViewClick(row.original)}
+              className="text-blue-600 hover:text-blue-800"
             >
-              <Eye className="h-5 w-5 text-green-700" />
+              <Eye className="h-4 w-4" />
             </Button>
-            {/* Other action buttons can be added here based on status */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleUpdateStatusClick(row.original)}
+              className="text-green-600 hover:text-green-800"
+            >
+              <Edit className="h-4 w-4" />
+            </Button>
           </div>
         ),
       },
     ],
-    [handleView]
+    [fetchOrders]
   );
 
   const stats = useMemo(
@@ -201,40 +222,57 @@ const OrdersManagement: React.FC = () => {
     [orders]
   );
 
-  const config = useMemo(
-    () => ({
-      title: "Gestion des Commandes",
-      description: "Gérez les commandes, les paiements et les livraisons",
-      icon: ShoppingCart,
-      stats,
-      columns,
-      viewFields: [
-        { key: "orderNumber", label: "N° Commande" },
-        { key: "productName", label: "Produit" },
-        { key: "status", label: "Statut" },
-        { key: "totalAmount", label: "Montant Total" },
-        { key: "orderedQuantity", label: "Quantité" },
-        { key: "farmerName", label: "Agriculteur" },
-        { key: "buyerName", label: "Acheteur" },
-        { key: "createdAt", label: "Date création" },
-      ],
-      formFields: [], // Requis par ManagementPage
-      defaultFormData: {}, // Requis par ManagementPage
-    }),
-    [stats, columns]
-  );
-
-  const dummyService = {
-    create: async () => Promise.reject(new Error("Not implemented")),
-    update: async () => Promise.reject(new Error("Not implemented")),
-    remove: async () => Promise.reject(new Error("Not implemented")),
-  };
+  const statusOptions = [
+    { value: "PENDING", label: "En attente" },
+    { value: "IN_ESCROW", label: "En séquestre" },
+    { value: "RELEASED", label: "Libérée" },
+    { value: "IN_DELIVERY", label: "En livraison" },
+    { value: "DELIVERED", label: "Livrée" },
+    { value: "CANCELLED", label: "Annulée" },
+    { value: "DISPUTED", label: "En litige" },
+  ];
 
   return (
-    <>
-      <ManagementPage<Order> config={config} data={orders} isLoading={isLoading} service={dummyService} />
+    <div className="space-y-8">
+      <div className="bg-gradient-to-r from-[#4CAF50] to-[#1E90FF] rounded-2xl shadow-lg p-8 text-white">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold mb-2">Gestion des Commandes</h1>
+            <p className="text-blue-100">Gérez les commandes, les paiements et les livraisons</p>
+          </div>
+          <div className="p-4 bg-white bg-opacity-20 rounded-xl">
+            <ShoppingCart className="w-8 h-8" />
+          </div>
+        </div>
+      </div>
 
-      {/* La modale ci-dessous est maintenant gérée par ManagementPage et peut être supprimée à l'avenir */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        {stats.map((stat, index) => {
+          const StatIcon = stat.icon;
+          return (
+            <div key={index} className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">{stat.label}</p>
+                  <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
+                </div>
+                <div className={`p-3 ${stat.bgColor} rounded-xl`}>
+                  <StatIcon className={`w-6 h-6 ${stat.color}`} />
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {isLoading && <p>Chargement...</p>}
+      {!isLoading && (
+        <DataTable<Order>
+          columns={columns}
+          data={orders}
+        />
+      )}
+
       <Modal
         isOpen={showViewModal}
         onClose={() => setShowViewModal(false)}
@@ -291,7 +329,31 @@ const OrdersManagement: React.FC = () => {
           </div>
         )}
       </Modal>
-    </>
+
+      <Modal
+        isOpen={showStatusModal}
+        onClose={() => setShowStatusModal(false)}
+        title="Mettre à jour le statut de la commande"
+        size="md"
+      >
+        <ModalForm
+          onSubmit={handleSubmitStatusUpdate}
+          onCancel={() => setShowStatusModal(false)}
+          submitText="Mettre à jour"
+          isLoading={isLoading}
+        >
+          <FormField
+            label="Statut de la commande"
+            name="status"
+            type="select"
+            value={newStatus || ""}
+            onChange={(e) => setNewStatus(e.target.value as Order["status"])}
+            options={statusOptions}
+            required
+          />
+        </ModalForm>
+      </Modal>
+    </div>
   );
 };
 

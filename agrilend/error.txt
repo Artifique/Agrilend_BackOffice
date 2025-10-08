@@ -5,3 +5,6 @@ IN_ESCROW
 DELIVERED
 CANCELLED
 DISPUTED
+
+
+http://localhost:8080/api/admin/orders/4/status?status=DELIVERED
