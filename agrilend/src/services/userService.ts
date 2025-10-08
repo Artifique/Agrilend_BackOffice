@@ -20,6 +20,23 @@ interface PaginatedUsers {
   empty: boolean;
 }
 
+export interface UserProfileDto {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone?: string;
+  address?: string;
+  hederaAccountId?: string;
+  role: "FARMER" | "BUYER" | "ADMIN";
+  active: boolean; // Utilise 'active' au lieu de 'status'
+  farmName?: string;
+  farmLocation?: string;
+  farmSize?: string;
+  companyName?: string;
+  activityType?: string;
+  companyAddress?: string;
+}
+
 // DTO pour la mise à jour/création d'utilisateur par l'admin
 export interface SignupRequest {
   firstName: string;
@@ -107,7 +124,7 @@ export const createUser = async (userData: UserProfileDto): Promise<User> => {
  * Met à jour le profil d'un utilisateur par un administrateur.
  */
 export const updateUser = async (userId: number, userData: UserProfileDto): Promise<User> => {
-  const endpoint = `/admin/users/${userId}`;
+  const endpoint = `/admin/users/${userId}/profile`;
   
   try {
     const response = await apiClient.put<ApiResponse<User>>(endpoint, userData);
@@ -135,7 +152,7 @@ export const activateUser = async (userId: number): Promise<void> => {
  */
 export const deactivateUser = async (userId: number): Promise<void> => {
   try {
-    await apiClient.put(`/admin/users/${userId}/deactivate`);
+    await apiClient.post(`/admin/users/${userId}/disable`);
   } catch (error) {
     console.error(`Error deactivating user ${userId}:`, error);
     throw error;

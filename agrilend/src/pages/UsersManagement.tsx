@@ -18,7 +18,7 @@ import Modal from "../components/Modal";
 import ModalForm from "../components/ModalForm";
 import UserForm, { UserFormData, User } from "../components/UserForm";
 import { initialUserForm } from "../components/userFormConstants";
-import { getAllUsers, registerUser } from "../services/userService";
+import { getAllUsers, registerUser, updateUser, deactivateUser } from "../services/userService";
 import { useNotificationHelpers } from "../hooks/useNotificationHelpers";
 
 const UsersManagement: React.FC = () => {
@@ -27,6 +27,7 @@ const UsersManagement: React.FC = () => {
   const [showViewModal, setShowViewModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [viewingUser, setViewingUser] = useState<User | null>(null);
+  const [editingUser, setEditingUser] = useState<User | null>(null); // Nouvel état pour l'utilisateur en édition
   const [deletingUser, setDeletingUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [newUser, setNewUser] = useState<UserFormData>(initialUserForm);
@@ -234,6 +235,7 @@ const UsersManagement: React.FC = () => {
   };
 
   const handleEdit = (user: User) => {
+    setEditingUser(user); // Stocker l'utilisateur complet pour l'édition
     setNewUser({
       firstName: user.firstName,
       lastName: user.lastName,
@@ -271,6 +273,7 @@ const UsersManagement: React.FC = () => {
   const handleCloseEditModal = () => {
     setShowEditModal(false);
     setNewUser(initialUserForm);
+    setEditingUser(null); // Réinitialiser l'utilisateur en édition
   };
 
   const handleCloseViewModal = () => {
@@ -307,12 +310,12 @@ const UsersManagement: React.FC = () => {
 
       await registerUser(userToRegister);
 
-      alert("Utilisateur ajouté avec succès !");
+      showSuccess("Succès", "Utilisateur ajouté avec succès !");
       handleCloseModal();
       fetchUsers(); // Refresh user list
     } catch (error) {
       console.error("Error creating user:", error);
-      alert("Erreur lors de l'ajout de l'utilisateur.");
+      showError("Erreur", "Erreur lors de l'ajout de l'utilisateur.");
     } finally {
       setIsLoading(false);
     }
@@ -322,24 +325,36 @@ const UsersManagement: React.FC = () => {
     e.preventDefault();
     setIsLoading(true);
     try {
-      // TODO: Replace with actual API call to update user
-      // Example: const response = await fetch(`/api/users/${editingUser.id}`, {
-      //   method: 'PUT',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(newUser),
-      // });
-      // const data = await response.json();
-      // console.log('User updated:', data);
+      if (!editingUser) {
+        showError("Erreur", "Aucun utilisateur sélectionné pour la modification.");
+        return;
+      }
 
-      await new Promise((resolve) => setTimeout(resolve, 500)); // Simulate API call
-      console.log("Submitting edited user:", newUser);
+      const userToUpdate: UserProfileDto = {
+        firstName: newUser.firstName,
+        lastName: newUser.lastName,
+        email: newUser.email,
+        phone: newUser.phone || undefined,
+        address: newUser.address || undefined,
+        hederaAccountId: newUser.hederaAccountId || undefined,
+        role: newUser.role,
+        active: newUser.status === "ACTIVE", // Convertir le status du formulaire en 'active' boolean
+        farmName: newUser.farmName || undefined,
+        farmLocation: newUser.farmLocation || undefined,
+        farmSize: newUser.farmSize || undefined,
+        companyName: newUser.companyName || undefined,
+        activityType: newUser.activityType || undefined,
+        companyAddress: newUser.companyAddress || undefined,
+      };
 
-      alert("Utilisateur modifié avec succès !");
+      await updateUser(editingUser.id, userToUpdate);
+
+      showSuccess("Succès", "Utilisateur modifié avec succès !");
       handleCloseEditModal();
       fetchUsers(); // Refresh user list
     } catch (error) {
       console.error("Error updating user:", error);
-      alert("Erreur lors de la modification de l'utilisateur.");
+      showError("Erreur", "Erreur lors de la modification de l'utilisateur.");
     } finally {
       setIsLoading(false);
     }
@@ -348,20 +363,19 @@ const UsersManagement: React.FC = () => {
   const handleSubmitDelete = async () => {
     setIsLoading(true);
     try {
-      // TODO: Replace with actual API call to delete user
-      // Example: await fetch(`/api/users/${deletingUser.id}`, {
-      //   method: 'DELETE',
-      // });
+      if (!deletingUser) {
+        showError("Erreur", "Aucun utilisateur sélectionné pour la désactivation.");
+        return;
+      }
 
-      await new Promise((resolve) => setTimeout(resolve, 500)); // Simulate API call
-      console.log("Deleting user:", deletingUser);
+      await deactivateUser(deletingUser.id);
 
-      alert("Utilisateur supprimé avec succès !");
+      showSuccess("Succès", "Utilisateur désactivé avec succès !");
       handleCloseDeleteModal();
       fetchUsers(); // Refresh user list
     } catch (error) {
-      console.error("Error deleting user:", error);
-      alert("Erreur lors de la suppression de l'utilisateur.");
+      console.error("Error deactivating user:", error);
+      showError("Erreur", "Erreur lors de la désactivation de l'utilisateur.");
     } finally {
       setIsLoading(false);
     }
@@ -449,7 +463,7 @@ const UsersManagement: React.FC = () => {
               <Clock className="h-6 w-6 text-yellow-600" />
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Inactifs</p>
+              <p className="text-sm font-medium text-gray-600">En Attente</p>
               <p className="text-2xl font-bold text-gray-900">
                 {allUsers.filter((user) => !user.active).length}
               </p>
@@ -534,7 +548,7 @@ const UsersManagement: React.FC = () => {
       <Modal
         isOpen={showViewModal}
         onClose={handleCloseViewModal}
-        title="Détails de l'Utilisateur"
+        title="Détails de l'Utilisateur"  
         type="default"
         size="lg"
       >
@@ -721,10 +735,10 @@ const UsersManagement: React.FC = () => {
               <AlertCircle className="h-6 w-6 text-red-600 mr-3" />
               <div>
                 <p className="text-gray-900 font-medium">
-                  Êtes-vous sûr de vouloir supprimer cet utilisateur ?
+                  Êtes-vous sûr de vouloir désactiver cet utilisateur ?
                 </p>
                 <p className="text-sm text-gray-600 mt-1">
-                  Cette action est irréversible.
+                  Cette action peut être annulée en réactivant l'utilisateur.
                 </p>
               </div>
             </div>
@@ -758,7 +772,7 @@ const UsersManagement: React.FC = () => {
                 ) : (
                   <Trash2 className="h-4 w-4 mr-2" />
                 )}
-                Supprimer
+                Désactiver
               </button>
               <button
                 onClick={handleCloseDeleteModal}
