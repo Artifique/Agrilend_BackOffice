@@ -1,3 +1,5 @@
-http://localhost:8080/api/admin/users/3/profile
+UsersManagement.tsx:423 Error activating user: ReferenceError: activateUser is not defined
+    at handleSubmitActivate (UsersManagement.tsx:417:7)
+handleSubmitActivate	@	UsersManagement.tsx:423
 
-http://localhost:8080/api/admin/users/2/disable
+﻿

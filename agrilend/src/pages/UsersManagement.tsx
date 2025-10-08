@@ -11,6 +11,7 @@ import {
   Trash2,
   Loader2,
   AlertCircle,
+  Edit, // Ajout de l'icône Edit
 } from "lucide-react";
 import { createColumnHelper, ColumnDef } from "@tanstack/react-table";
 import DataTable from "../components/DataTable";
@@ -18,7 +19,7 @@ import Modal from "../components/Modal";
 import ModalForm from "../components/ModalForm";
 import UserForm, { UserFormData, User } from "../components/UserForm";
 import { initialUserForm } from "../components/userFormConstants";
-import { getAllUsers, registerUser, updateUser, deactivateUser } from "../services/userService";
+import { getAllUsers, registerUser, updateUser, deactivateUser, activateUser } from "../services/userService";
 import { useNotificationHelpers } from "../hooks/useNotificationHelpers";
 
 const UsersManagement: React.FC = () => {
@@ -26,9 +27,11 @@ const UsersManagement: React.FC = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showActivateModal, setShowActivateModal] = useState(false); // Nouvel état pour le modal d'activation
   const [viewingUser, setViewingUser] = useState<User | null>(null);
   const [editingUser, setEditingUser] = useState<User | null>(null); // Nouvel état pour l'utilisateur en édition
   const [deletingUser, setDeletingUser] = useState<User | null>(null);
+  const [activatingUser, setActivatingUser] = useState<User | null>(null); // Nouvel état pour l'utilisateur à activer
   const [isLoading, setIsLoading] = useState(false);
   const [newUser, setNewUser] = useState<UserFormData>(initialUserForm);
   const [allUsers, setAllUsers] = useState<User[]>([]); // State to hold fetched users
@@ -185,15 +188,26 @@ const UsersManagement: React.FC = () => {
                 className="text-green-600 hover:text-green-800 transition-colors duration-200"
                 title="Modifier"
               >
-                <CheckCircle className="h-4 w-4" />
+                <Edit className="h-4 w-4" />
               </button>
-              <button
-                onClick={() => handleDelete(row.original)}
-                className="text-red-600 hover:text-red-800 transition-colors duration-200"
-                title="Supprimer"
-              >
-                <Trash2 className="h-4 w-4" />
-              </button>
+              {!row.original.active && ( // Afficher le bouton Activer si l'utilisateur est inactif
+                <button
+                  onClick={() => handleActivate(row.original)}
+                  className="text-purple-600 hover:text-purple-800 transition-colors duration-200"
+                  title="Activer"
+                >
+                  <CheckCircle className="h-4 w-4" />
+                </button>
+              )}
+              {row.original.active && ( // Afficher le bouton Désactiver si l'utilisateur est actif
+                <button
+                  onClick={() => handleDelete(row.original)}
+                  className="text-red-600 hover:text-red-800 transition-colors duration-200"
+                  title="Désactiver"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              )}
             </div>
           ),
         }),
@@ -260,6 +274,11 @@ const UsersManagement: React.FC = () => {
     setShowDeleteModal(true);
   };
 
+  const handleActivate = (user: User) => {
+    setActivatingUser(user);
+    setShowActivateModal(true);
+  };
+
   const handleAddUser = () => {
     setNewUser(initialUserForm); // Reset form for new user
     setShowAddModal(true);
@@ -285,6 +304,12 @@ const UsersManagement: React.FC = () => {
     setShowDeleteModal(false);
     setDeletingUser(null);
   };
+
+  const handleCloseActivateModal = () => {
+    setShowActivateModal(false);
+    setActivatingUser(null);
+  };
+
   const handleSubmitUser = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -376,6 +401,27 @@ const UsersManagement: React.FC = () => {
     } catch (error) {
       console.error("Error deactivating user:", error);
       showError("Erreur", "Erreur lors de la désactivation de l'utilisateur.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSubmitActivate = async () => {
+    setIsLoading(true);
+    try {
+      if (!activatingUser) {
+        showError("Erreur", "Aucun utilisateur sélectionné pour l'activation.");
+        return;
+      }
+
+      await activateUser(activatingUser.id);
+
+      showSuccess("Succès", "Utilisateur activé avec succès !");
+      handleCloseActivateModal();
+      fetchUsers(); // Refresh user list
+    } catch (error) {
+      console.error("Error activating user:", error);
+      showError("Erreur", "Erreur lors de l'activation de l'utilisateur.");
     } finally {
       setIsLoading(false);
     }
@@ -725,7 +771,7 @@ const UsersManagement: React.FC = () => {
       <Modal
         isOpen={showDeleteModal}
         onClose={handleCloseDeleteModal}
-        title="Supprimer l'Utilisateur"
+        title="Désactiver l'Utilisateur"
         type="error"
         size="sm"
       >
@@ -776,6 +822,71 @@ const UsersManagement: React.FC = () => {
               </button>
               <button
                 onClick={handleCloseDeleteModal}
+                disabled={isLoading}
+                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors duration-200 disabled:opacity-50"
+              >
+                Annuler
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Modal d'activation d'utilisateur */}
+      <Modal
+        isOpen={showActivateModal}
+        onClose={handleCloseActivateModal}
+        title="Activer l'Utilisateur"
+        type="info"
+        size="sm"
+      >
+        {activatingUser && (
+          <div className="space-y-4">
+            <div className="flex items-center">
+              <CheckCircle className="h-6 w-6 text-green-600 mr-3" />
+              <div>
+                <p className="text-gray-900 font-medium">
+                  Êtes-vous sûr de vouloir activer cet utilisateur ?
+                </p>
+                <p className="text-sm text-gray-600 mt-1">
+                  L'utilisateur pourra à nouveau se connecter et utiliser la plateforme.
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <p className="text-sm text-gray-600">
+                <strong>Nom :</strong> {activatingUser.firstName}{" "}
+                {activatingUser.lastName}
+              </p>
+              <p className="text-sm text-gray-600">
+                <strong>Email :</strong> {activatingUser.email}
+              </p>
+              <p className="text-sm text-gray-600">
+                <strong>Rôle :</strong>{" "}
+                {activatingUser.role === "FARMER"
+                  ? "Agriculteur"
+                  : activatingUser.role === "BUYER"
+                  ? "Acheteur"
+                  : "Administrateur"}
+              </p>
+            </div>
+
+            <div className="flex space-x-3">
+              <button
+                onClick={handleSubmitActivate}
+                disabled={isLoading}
+                className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200 disabled:opacity-50 flex items-center justify-center"
+              >
+                {isLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : (
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                )}
+                Activer
+              </button>
+              <button
+                onClick={handleCloseActivateModal}
                 disabled={isLoading}
                 className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors duration-200 disabled:opacity-50"
               >

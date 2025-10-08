@@ -140,7 +140,7 @@ export const updateUser = async (userId: number, userData: UserProfileDto): Prom
  */
 export const activateUser = async (userId: number): Promise<void> => {
   try {
-    await apiClient.put(`/admin/users/${userId}/activate`);
+    await apiClient.post(`/admin/users/${userId}/enable`);
   } catch (error) {
     console.error(`Error activating user ${userId}:`, error);
     throw error;
