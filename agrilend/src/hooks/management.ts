@@ -64,7 +64,7 @@ export const useEntityManagement = <T extends { id: number }>(
         ...formData,
         id: Date.now(),
         createdAt: new Date().toISOString().split('T')[0]
-      } as T;
+      } as any as T;
       
       setData(prev => [...prev, newItem]);
       resetForm();
@@ -153,8 +153,11 @@ export const useFormValidation = <T extends Record<string, unknown>>(
     
     // Validation en temps réel
     if (validationRules?.[fieldName]) {
-      const error = validationRules[fieldName]!(value);
-      setErrors(prev => ({ ...prev, [fieldName]: error || undefined }));
+      const validator = validationRules[fieldName];
+      if (validator) {
+        const error = validator(value);
+        setErrors(prev => ({ ...prev, [fieldName]: error || undefined }));
+      }
     }
   }, [validationRules]);
   
@@ -170,9 +173,11 @@ export const useFormValidation = <T extends Record<string, unknown>>(
     if (validationRules) {
       for (const [field, validator] of Object.entries(validationRules)) {
         const fieldName = field as keyof T;
-        const error = validator(values[fieldName]);
-        if (error) {
-          newErrors[fieldName] = error;
+        if (validator) {
+          const error = validator(values[fieldName]);
+          if (error) {
+            newErrors[fieldName] = error;
+          }
         }
       }
     }
@@ -249,7 +254,7 @@ export const useNotifications = () => {
 };
 
 // Hook pour la gestion des tableaux avec tri et filtrage
-export const useTableData = <T>(
+export const useTableData = <T extends Record<string, unknown>>(
   data: T[],
   initialSortField?: keyof T,
   initialSortDirection: 'asc' | 'desc' = 'asc'
@@ -264,7 +269,7 @@ export const useTableData = <T>(
     // Filtrage par terme de recherche
     if (searchTerm) {
       filtered = data.filter(item => 
-        Object.values(item).some(value => 
+        Object.values(item as Record<string, unknown>).some(value => 
           String(value).toLowerCase().includes(searchTerm.toLowerCase())
         )
       );

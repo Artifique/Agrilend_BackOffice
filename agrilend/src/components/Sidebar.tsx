@@ -6,7 +6,6 @@ import {
   Users,
   ShoppingCart,
   DollarSign,
-  Truck,
   AlertTriangle,
   Settings,
   Package,
@@ -26,7 +25,6 @@ const navigation: NavigationItem[] = [
   { name: "Commandes", path: "/orders", icon: ShoppingCart },
   { name: "Gestion Financière", path: "/financial", icon: DollarSign },
   { name: "Gestion des Produits", path: "/products", icon: Package },
-  { name: "Gestion Litiges", path: "/disputes", icon: AlertTriangle },
   { name: "Rapports & Stats", path: "/reports", icon: FileText },
   { name: "Paramètres", path: "/parameters", icon: Settings },
 ];

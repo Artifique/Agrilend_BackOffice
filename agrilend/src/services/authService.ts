@@ -107,8 +107,8 @@ export const register = async (userData: Record<string, unknown>): Promise<AuthR
     const authData = response.data.data;
 
     // 🔥 Sauvegarde du token après inscription
-    if (authData?.token) {
-      localStorage.setItem("authToken", authData.token);
+    if (authData?.accessToken) {
+      localStorage.setItem("authToken", authData.accessToken);
     }
 
     return authData;

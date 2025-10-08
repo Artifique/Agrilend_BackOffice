@@ -19,7 +19,7 @@ import Modal from "../components/Modal";
 import ModalForm from "../components/ModalForm";
 import UserForm, { UserFormData, User } from "../components/UserForm";
 import { initialUserForm } from "../components/userFormConstants";
-import { getAllUsers, registerUser, updateUser, deactivateUser, activateUser } from "../services/userService";
+import { getAllUsers, registerUser, updateUser, deactivateUser, activateUser, SignupRequest, UserProfileDto } from "../services/userService";
 import { useNotificationHelpers } from "../hooks/useNotificationHelpers";
 
 const UsersManagement: React.FC = () => {

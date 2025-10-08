@@ -18,7 +18,6 @@ import OffersManagement from "./pages/OffersManagement";
 import OrdersManagement from "./pages/OrdersManagement";
 import FinancialManagement from "./pages/FinancialManagement";
 import ProductManagement from "./pages/ProductManagement";
-import DisputesManagement from "./pages/DisputesManagement";
 import ReportsAnalytics from "./pages/ReportsAnalytics";
 import ParametersConfig from "./pages/ParametersConfig";
 import ErrorBoundary from "./components/ErrorBoundary";
@@ -47,7 +46,6 @@ const AppRoutes: React.FC = () => {
             <Route path="orders" element={<OrdersManagement />} />
             <Route path="financial" element={<FinancialManagement />} />
             <Route path="products" element={<ProductManagement />} />
-            <Route path="disputes" element={<DisputesManagement />} />
             <Route path="reports" element={<ReportsAnalytics />} />
             <Route path="parameters" element={<ParametersConfig />} />
             <Route path="notifications" element={<Notifications />} />

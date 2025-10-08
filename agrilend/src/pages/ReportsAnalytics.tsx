@@ -1,77 +1,138 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Area, AreaChart } from 'recharts';
-import { TrendingUp, Users, ShoppingCart, DollarSign, Package, Download, Calendar, Filter, RefreshCw } from 'lucide-react';
-
-interface ReportData {
-  period: string;
-  orders: number;
-  revenue: number;
-  farmers: number;
-  buyers: number;
-  transactions: number;
-}
-
-interface ProductDistribution {
-  category: string;
-  value: number;
-  color: string;
-}
-
-interface RevenueData {
-  month: string;
-  revenue: number;
-  commission: number;
-  stakingRewards: number;
-}
+import { Download, Calendar, Filter, RefreshCw } from 'lucide-react';
+import { jsPDF } from "jspdf";
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
+import { useNotificationHelpers } from "../hooks/useNotificationHelpers";
+import {
+  getDashboardStats,
+  getMonthlyRevenue,
+  getCategoryRevenue,
+  DashboardStats,
+  MonthlyRevenue,
+  CategoryRevenue,
+} from "../services/dashboardService";
 
 const ReportsAnalytics: React.FC = () => {
   const [selectedPeriod, setSelectedPeriod] = useState('30d');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(null);
+  const [monthlyRevenueData, setMonthlyRevenueData] = useState<MonthlyRevenue[]>([]);
+  const [categoryRevenueData, setCategoryRevenueData] = useState<CategoryRevenue[]>([]);
+  const { showSuccess, showError } = useNotificationHelpers();
 
-  // Données des rapports
-  const reportData: ReportData[] = [
-    { period: 'Jan', orders: 45, revenue: 12500, farmers: 12, buyers: 8, transactions: 67 },
-    { period: 'Fév', orders: 52, revenue: 14800, farmers: 15, buyers: 10, transactions: 78 },
-    { period: 'Mar', orders: 38, revenue: 11200, farmers: 11, buyers: 7, transactions: 56 },
-    { period: 'Avr', orders: 67, revenue: 18900, farmers: 18, buyers: 12, transactions: 89 },
-    { period: 'Mai', orders: 73, revenue: 21500, farmers: 20, buyers: 15, transactions: 98 },
-    { period: 'Juin', orders: 89, revenue: 26700, farmers: 24, buyers: 18, transactions: 112 }
-  ];
+  const fetchDashboardData = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const stats = await getDashboardStats();
+      setDashboardStats(stats);
 
-  const productDistribution: ProductDistribution[] = [
-    { category: 'Légumes', value: 35, color: '#4CAF50' },
-    { category: 'Fruits', value: 28, color: '#FF9800' },
-    { category: 'Céréales', value: 22, color: '#2196F3' },
-    { category: 'Élevage', value: 15, color: '#9C27B0' }
-  ];
+      // Fetch monthly revenue for current year and month (example)
+      const now = new Date();
+      const currentYear = now.getFullYear();
+      const currentMonth = now.getMonth() + 1; // Month is 0-indexed
+      const monthly = await getMonthlyRevenue(currentYear, currentMonth);
+      console.log("Monthly revenue data from service:", monthly);
+      setMonthlyRevenueData(monthly);
 
-  const revenueData: RevenueData[] = [
-    { month: 'Jan', revenue: 12500, commission: 625, stakingRewards: 250 },
-    { month: 'Fév', revenue: 14800, commission: 740, stakingRewards: 296 },
-    { month: 'Mar', revenue: 11200, commission: 560, stakingRewards: 224 },
-    { month: 'Avr', revenue: 18900, commission: 945, stakingRewards: 378 },
-    { month: 'Mai', revenue: 21500, commission: 1075, stakingRewards: 430 },
-    { month: 'Juin', revenue: 26700, commission: 1335, stakingRewards: 534 }
-  ];
+      const category = await getCategoryRevenue();
+      setCategoryRevenueData(category);
+
+    } catch (error) {
+      console.error("Error fetching dashboard data:", error);
+      showError("Erreur", "Impossible de charger les données du tableau de bord.");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [showError]);
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, [fetchDashboardData]);
 
   const handleGenerateReport = async () => {
     setIsGenerating(true);
-    
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
+    await fetchDashboardData();
     setIsGenerating(false);
-    alert('Rapport généré avec succès !');
+    showSuccess("Succès", "Rapport généré avec succès !");
   };
 
-  const handleExportData = (format: string) => {
-    alert(`Export des données en format ${format.toUpperCase()} en cours...`);
+  const handleExportData = async (format: string) => {
+    if (format === 'csv') {
+      const headers = ["Catégorie", "Revenus"];
+      const rows = categoryRevenueData.map(item => `"${item.category}","${item.totalRevenue}"`);
+      const csvContent = [headers.join(","), ...rows].join("\n");
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.setAttribute('download', 'revenus_par_categorie.csv');
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      showSuccess("Succès", "Export CSV réussi !");
+    } else if (format === 'pdf') {
+      const input = document.getElementById('detailed-table');
+      if (input) {
+        const canvas = await html2canvas(input);
+        const imgData = canvas.toDataURL('image/png');
+        const pdf = new jsPDF();
+        const imgWidth = 200;
+        const pageHeight = pdf.internal.pageSize.height;
+        const imgHeight = canvas.height * imgWidth / canvas.width;
+        let heightLeft = imgHeight;
+        let position = 0;
+
+        pdf.addImage(imgData, 'PNG', 5, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+
+        while (heightLeft >= 0) {
+          position = heightLeft - imgHeight;
+          pdf.addPage();
+          pdf.addImage(imgData, 'PNG', 5, position, imgWidth, imgHeight);
+          heightLeft -= pageHeight;
+        }
+        pdf.save('rapport_revenus.pdf');
+        showSuccess("Succès", "Export PDF réussi !");
+      } else {
+        showError("Erreur", "Tableau détaillé non trouvé pour l'export PDF.");
+      }
+    } else if (format === 'excel') {
+      const ws = XLSX.utils.json_to_sheet(categoryRevenueData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Revenus par Catégorie");
+      const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+      const data = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8' });
+      saveAs(data, 'revenus_par_categorie.xlsx');
+      showSuccess("Succès", "Export Excel réussi !");
+    }
   };
 
-  const totalRevenue = reportData.reduce((sum, data) => sum + data.revenue, 0);
-  const totalOrders = reportData.reduce((sum, data) => sum + data.orders, 0);
-  const totalFarmers = Math.max(...reportData.map(data => data.farmers));
-  const totalBuyers = Math.max(...reportData.map(data => data.buyers));
+  const totalRevenue = dashboardStats?.totalRevenueLast30Days || 0;
+  const totalOrders = dashboardStats?.totalOrders || 0;
+  const totalFarmers = dashboardStats?.totalActiveFarmers || 0;
+  const totalBuyers = dashboardStats?.totalActiveBuyers || 0;
+
+  const productDistributionForPieChart = useMemo(() => {
+    return categoryRevenueData.map(item => ({
+      category: item.category,
+      value: item.totalRevenue, // Assuming value for pie chart is totalRevenue
+      color: '#' + Math.floor(Math.random()*16777215).toString(16) // Random color for now
+    }));
+  }, [categoryRevenueData]);
+
+  const revenueDataForAreaChart = useMemo(() => {
+    // This needs to be adapted based on how monthlyRevenueData is structured
+    // For now, let's assume it's a simple array of { month, totalRevenue }
+    return monthlyRevenueData.map(item => ({
+      month: `${item.month}/${item.year}`,
+      revenue: item.totalRevenue,
+      commission: item.totalRevenue * 0.05, // Example commission
+      stakingRewards: item.totalRevenue * 0.02, // Example staking rewards
+    }));
+  }, [monthlyRevenueData]);
 
   return (
     <div className="space-y-8">
@@ -88,17 +149,17 @@ const ReportsAnalytics: React.FC = () => {
             </div>
             <button
               onClick={handleGenerateReport}
-              disabled={isGenerating}
+              disabled={isGenerating || isLoading}
               className={`px-6 py-3 rounded-xl transition-all duration-300 flex items-center ${
-                !isGenerating 
-                  ? 'bg-white/20 backdrop-blur-sm hover:bg-white/30' 
+                !isGenerating && !isLoading
+                  ? 'bg-white/20 backdrop-blur-sm hover:bg-white/30'
                   : 'bg-white/10 cursor-not-allowed'
               }`}
             >
-              {isGenerating ? (
+              {isGenerating || isLoading ? (
                 <>
                   <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                  Génération...
+                  Chargement...
                 </>
               ) : (
                 <>
@@ -144,10 +205,9 @@ const ReportsAnalytics: React.FC = () => {
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4CAF50] focus:border-[#4CAF50]"
             >
               <option value="all">Toutes les catégories</option>
-              <option value="vegetables">Légumes</option>
-              <option value="fruits">Fruits</option>
-              <option value="grains">Céréales</option>
-              <option value="livestock">Élevage</option>
+              {categoryRevenueData.map(cat => (
+                <option key={cat.category} value={cat.category}>{cat.category}</option>
+              ))}
             </select>
           </div>
           
@@ -161,128 +221,151 @@ const ReportsAnalytics: React.FC = () => {
       </div>
 
       {/* Métriques principales */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Revenus Totaux</p>
-              <p className="text-2xl font-bold text-[#4CAF50]">€{totalRevenue.toLocaleString()}</p>
-              <p className="text-sm text-green-600">+24% vs mois précédent</p>
+      {isLoading ? (
+        <p>Chargement des métriques...</p>
+      ) : dashboardStats ? (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Revenus Totaux</p>
+                <p className="text-2xl font-bold text-[#4CAF50]">€{totalRevenue.toLocaleString()}</p>
+                <p className="text-sm text-green-600">+24% vs mois précédent</p>
+              </div>
+              <div className="p-3 bg-[#4CAF50]/10 rounded-xl">
+                <DollarSign className="h-6 w-6 text-[#4CAF50]" />
+              </div>
             </div>
-            <div className="p-3 bg-[#4CAF50]/10 rounded-xl">
-              <DollarSign className="h-6 w-6 text-[#4CAF50]" />
+          </div>
+          
+          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Commandes</p>
+                <p className="text-2xl font-bold text-[#1E90FF]">{totalOrders}</p>
+                <p className="text-sm text-blue-600">+18% vs mois précédent</p>
+              </div>
+              <div className="p-3 bg-[#1E90FF]/10 rounded-xl">
+                <ShoppingCart className="h-6 w-6 text-[#1E90FF]" />
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Agriculteurs Actifs</p>
+                <p className="text-2xl font-bold text-orange-500">{totalFarmers}</p>
+                <p className="text-sm text-orange-600">+12% vs mois précédent</p>
+              </div>
+              <div className="p-3 bg-orange-100 rounded-xl">
+                <Users className="h-6 w-6 text-orange-500" />
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Acheteurs Actifs</p>
+                <p className="text-2xl font-bold text-purple-500">{totalBuyers}</p>
+                <p className="text-sm text-purple-600">+15% vs mois précédent</p>
+              </div>
+              <div className="p-3 bg-purple-100 rounded-xl">
+                <Package className="h-6 w-6 text-purple-500" />
+              </div>
             </div>
           </div>
         </div>
-        
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Commandes</p>
-              <p className="text-2xl font-bold text-[#1E90FF]">{totalOrders}</p>
-              <p className="text-sm text-blue-600">+18% vs mois précédent</p>
-            </div>
-            <div className="p-3 bg-[#1E90FF]/10 rounded-xl">
-              <ShoppingCart className="h-6 w-6 text-[#1E90FF]" />
-            </div>
-          </div>
-        </div>
-        
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Agriculteurs Actifs</p>
-              <p className="text-2xl font-bold text-orange-500">{totalFarmers}</p>
-              <p className="text-sm text-orange-600">+12% vs mois précédent</p>
-            </div>
-            <div className="p-3 bg-orange-100 rounded-xl">
-              <Users className="h-6 w-6 text-orange-500" />
-            </div>
-          </div>
-        </div>
-        
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Acheteurs Actifs</p>
-              <p className="text-2xl font-bold text-purple-500">{totalBuyers}</p>
-              <p className="text-sm text-purple-600">+15% vs mois précédent</p>
-            </div>
-            <div className="p-3 bg-purple-100 rounded-xl">
-              <Package className="h-6 w-6 text-purple-500" />
-            </div>
-          </div>
-        </div>
-      </div>
+      ) : (
+        <p>Aucune donnée de métriques principales disponible.</p>
+      )}
 
       {/* Graphiques */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Évolution des revenus */}
         <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Évolution des Revenus</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <AreaChart data={revenueData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="month" />
-              <YAxis />
-              <Tooltip 
-                formatter={(value, name) => [
-                  `€${value.toLocaleString()}`, 
-                  name === 'revenue' ? 'Revenus' : 
-                  name === 'commission' ? 'Commissions' : 'Récompenses Staking'
-                ]}
-              />
-              <Area type="monotone" dataKey="revenue" stackId="1" stroke="#4CAF50" fill="#4CAF50" fillOpacity={0.6} />
-              <Area type="monotone" dataKey="commission" stackId="2" stroke="#1E90FF" fill="#1E90FF" fillOpacity={0.6} />
-              <Area type="monotone" dataKey="stakingRewards" stackId="3" stroke="#9C27B0" fill="#9C27B0" fillOpacity={0.6} />
-            </AreaChart>
-          </ResponsiveContainer>
+          {isLoading ? (
+            <p>Chargement des données de revenus...</p>
+          ) : revenueDataForAreaChart.length > 0 ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <AreaChart data={revenueDataForAreaChart}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="month" />
+                <YAxis />
+                <Tooltip 
+                  formatter={(value, name) => [
+                    `€${(value as number).toLocaleString()}`, 
+                    name === 'revenue' ? 'Revenus' : 
+                    name === 'commission' ? 'Commissions' : 'Récompenses Staking'
+                  ]}
+                />
+                <Area type="monotone" dataKey="revenue" stackId="1" stroke="#4CAF50" fill="#4CAF50" fillOpacity={0.6} />
+                <Area type="monotone" dataKey="commission" stackId="2" stroke="#1E90FF" fill="#1E90FF" fillOpacity={0.6} />
+                <Area type="monotone" dataKey="stakingRewards" stackId="3" stroke="#9C27B0" fill="#9C27B0" fillOpacity={0.6} />
+              </AreaChart>
+            </ResponsiveContainer>
+          ) : (
+            <p>Aucune donnée de revenus mensuels disponible.</p>
+          )}
         </div>
 
         {/* Répartition des produits */}
         <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Répartition par Catégorie</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <PieChart>
-              <Pie
-                data={productDistribution}
-                cx="50%"
-                cy="50%"
-                labelLine={false}
-                label={(props: { name?: string; value?: string | number }) => {
-                  const { name, value } = props;
-                  const numericValue = typeof value === 'string' ? parseFloat(value) || 0 : value || 0;
-                  const total = productDistribution.reduce((sum, item) => sum + item.value, 0);
-                  const percentage = ((numericValue) / total * 100).toFixed(0);
-                  return `${name || 'Unknown'} ${percentage}%`;
-                }}
-                outerRadius={80}
-                fill="#8884d8"
-                dataKey="value"
-              >
-                {productDistribution.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color} />
-                ))}
-              </Pie>
-              <Tooltip />
-            </PieChart>
-          </ResponsiveContainer>
+          {isLoading ? (
+            <p>Chargement des données de répartition...</p>
+          ) : productDistributionForPieChart.length > 0 ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={productDistributionForPieChart}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={(props: { category?: string; value?: number }) => {
+                    const { category, value } = props;
+                    const total = productDistributionForPieChart.reduce((sum, item) => sum + item.value, 0);
+                    const percentage = ((value || 0) / total * 100).toFixed(0);
+                    return `${category || 'Unknown'} ${percentage}%`;
+                  }}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="value"
+                >
+                  {productDistributionForPieChart.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+          ) : (
+            <p>Aucune donnée de répartition par catégorie disponible.</p>
+          )}
         </div>
       </div>
 
       {/* Graphique des commandes */}
       <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Évolution des Commandes</h3>
-        <ResponsiveContainer width="100%" height={400}>
-          <BarChart data={reportData}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="period" />
-            <YAxis />
-            <Tooltip />
-            <Bar dataKey="orders" fill="#4CAF50" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="transactions" fill="#1E90FF" radius={[4, 4, 0, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
+        {isLoading ? (
+          <p>Chargement des données de commandes...</p>
+        ) : revenueDataForAreaChart.length > 0 ? (
+          <ResponsiveContainer width="100%" height={400}>
+            <BarChart data={revenueDataForAreaChart}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="month" />
+              <YAxis />
+              <Tooltip />
+              <Bar dataKey="revenue" fill="#4CAF50" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="commission" fill="#1E90FF" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        ) : (
+          <p>Aucune donnée d'évolution des commandes disponible.</p>
+        )}
       </div>
 
       {/* Tableau détaillé */}
@@ -319,24 +402,26 @@ const ReportsAnalytics: React.FC = () => {
             <thead>
               <tr className="border-b border-gray-200">
                 <th className="text-left py-3 px-4 font-semibold text-gray-900">Période</th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-900">Commandes</th>
                 <th className="text-left py-3 px-4 font-semibold text-gray-900">Revenus</th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-900">Agriculteurs</th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-900">Acheteurs</th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-900">Transactions</th>
+                <th className="text-left py-3 px-4 font-semibold text-gray-900">Catégorie</th>
               </tr>
             </thead>
             <tbody>
-              {reportData.map((data, index) => (
-                <tr key={index} className="border-b border-gray-100 hover:bg-gray-50">
-                  <td className="py-3 px-4 text-gray-900 font-medium">{data.period}</td>
-                  <td className="py-3 px-4 text-[#1E90FF] font-medium">{data.orders}</td>
-                  <td className="py-3 px-4 text-[#4CAF50] font-medium">€{data.revenue.toLocaleString()}</td>
-                  <td className="py-3 px-4 text-orange-600 font-medium">{data.farmers}</td>
-                  <td className="py-3 px-4 text-purple-600 font-medium">{data.buyers}</td>
-                  <td className="py-3 px-4 text-gray-700 font-medium">{data.transactions}</td>
+              {categoryRevenueData.length > 0 ? (
+                categoryRevenueData.map((data, index) => (
+                  <tr key={index} className="border-b border-gray-100 hover:bg-gray-50">
+                    <td className="py-3 px-4 text-gray-900 font-medium">{data.category}</td>
+                    <td className="py-3 px-4 text-[#4CAF50] font-medium">€{data.totalRevenue.toLocaleString()}</td>
+                    <td className="py-3 px-4 text-gray-700 font-medium">{data.category}</td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={3} className="py-3 px-4 text-center text-gray-500">
+                    Aucune donnée détaillée disponible.
+                  </td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         </div>

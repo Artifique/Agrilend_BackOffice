@@ -45,22 +45,6 @@ export interface Order {
   cancelledAt?: string;
 }
 
-export interface Dispute {
-  id: number;
-  farmer: string;
-  buyer: string;
-  orderId: number;
-  productType: string;
-  category: 'non-delivery' | 'cancellation' | 'quality' | 'payment' | 'logistics' | 'other';
-  status: 'open' | 'in-progress' | 'resolved' | 'closed';
-  priority: 'low' | 'medium' | 'high' | 'urgent';
-  description: string;
-  createdAt: string;
-  resolvedAt?: string;
-  assignedTo?: string;
-  hederaTxId?: string;
-}
-
 export interface FinancialTransaction {
   id: number;
   orderId: number;

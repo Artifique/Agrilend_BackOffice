@@ -45,7 +45,7 @@ export interface User {
   companyAddress?: string;
   // Champs qui étaient dans l'ancienne interface mais pas dans le JSON fourni, rendus optionnels
   address?: string;
-  status?: "ACTIVE" | "INACTIVE"; // 'PENDING' supprimé
+  status?: "ACTIVE" | "INACTIVE" | "PENDING";
   isActive?: boolean; // Gardé pour la compatibilité, mais 'active' est la source
   emailVerified?: boolean;
   lastLogin?: string;
@@ -100,14 +100,8 @@ const UserForm: React.FC<{
       HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
     >
   ) => void;
-  onProfileChange: (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-    >,
-    profileType: "farmerProfile" | "buyerProfile"
-  ) => void;
   isNewUser?: boolean;
-}> = ({ user, onChange, onProfileChange, isNewUser }) => (
+}> = ({ user, onChange, isNewUser }) => (
   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
     <FormField
       label="Prénom"
